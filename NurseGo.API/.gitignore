@@ -1,0 +1,6 @@
+bin/
+obj/
+*.db
+appsettings.Development.json
+appsettings.Production.json
+appsettings.local.json

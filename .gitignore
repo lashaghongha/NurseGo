@@ -1,0 +1,21 @@
+# ─── Backend ───────────────────────────────
+NurseGo.API/bin/
+NurseGo.API/obj/
+NurseGo.API/*.db
+NurseGo.API/*.db-shm
+NurseGo.API/*.db-wal
+NurseGo.API/wwwroot/uploads/
+NurseGo.API/appsettings.Development.json
+
+# ─── Frontend ──────────────────────────────
+nursego-frontend/node_modules/
+nursego-frontend/build/
+nursego-frontend/.env.local
+nursego-frontend/.env.production
+
+# ─── OS / IDE ──────────────────────────────
+.vs/
+.vscode/
+*.user
+.DS_Store
+Thumbs.db

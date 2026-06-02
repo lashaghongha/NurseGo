@@ -1,0 +1,132 @@
+.admin-page {
+  display: flex;
+  min-height: calc(100vh - 64px);
+}
+
+.admin-sidebar {
+  width: 220px;
+  background: var(--dark);
+  padding: 24px 16px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.admin-brand {
+  color: white;
+  font-size: 18px;
+  font-weight: 800;
+  padding: 12px 12px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 8px;
+}
+.admin-brand span {
+  background: var(--primary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.admin-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  color: rgba(255,255,255,0.65);
+  font-size: 14px;
+  font-weight: 500;
+  background: none;
+  text-align: left;
+  transition: all 0.2s;
+  width: 100%;
+}
+.admin-tab:hover { background: rgba(255,255,255,0.08); color: white; }
+.admin-tab.active { background: var(--primary); color: white; font-weight: 700; }
+
+.admin-content {
+  flex: 1;
+  padding: 36px;
+  overflow-y: auto;
+  background: #f8fafc;
+}
+
+/* Stat Cards */
+.stat-card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card.pending { border-left: 4px solid var(--warning); }
+.sc-val { font-size: 32px; font-weight: 900; color: var(--dark); }
+.sc-label { font-size: 13px; color: var(--gray); }
+.sc-icon {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 28px;
+  opacity: 0.2;
+}
+
+.charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+
+/* Table */
+.admin-table-wrap { overflow-x: auto; background: white; border-radius: var(--radius); box-shadow: var(--shadow); }
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.admin-table th {
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #f1f5f9;
+  background: #fafafa;
+}
+.admin-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f8fafc;
+  vertical-align: middle;
+}
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table tr:hover td { background: #f8fafc; }
+
+/* Prices */
+.prices-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.price-edit-card { display: flex; flex-direction: column; }
+.price-edit-form { display: flex; flex-direction: column; gap: 10px; }
+.price-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-sm);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary);
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .admin-page { flex-direction: column; }
+  .admin-sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; padding: 8px 12px; gap: 4px; }
+  .admin-brand { display: none; }
+  .admin-tab { flex: 1; min-width: 80px; justify-content: center; font-size: 13px; padding: 8px 6px; text-align: center; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .prices-grid { grid-template-columns: repeat(2, 1fr); }
+  .admin-content { padding: 16px; }
+  .admin-table-wrap { font-size: 12px; }
+  .admin-table th, .admin-table td { padding: 8px 10px; }
+}

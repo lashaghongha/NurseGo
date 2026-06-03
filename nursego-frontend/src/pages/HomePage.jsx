@@ -12,10 +12,10 @@ const SERVICES_PREVIEW = [
 ];
 
 const STATS = [
-  { value: '150+', label: 'რეგისტრირებული ექთანი' },
-  { value: '2000+', label: 'შესრულებული შეკვეთა' },
-  { value: '4.8★', label: 'საშუალო რეიტინგი' },
-  { value: '30 წთ', label: 'საშუალო ჩამოსვლის დრო' },
+  { icon: '👩‍⚕️', value: '150+',   label: 'რეგისტრირებული ექთანი' },
+  { icon: '✅',    value: '2000+', label: 'შესრულებული შეკვეთა' },
+  { icon: '⭐',    value: '4.8',   label: 'საშუალო რეიტინგი' },
+  { icon: '⚡',    value: '30 წთ', label: 'საშუალო ჩამოსვლის დრო' },
 ];
 
 const HOW_IT_WORKS = [
@@ -172,8 +172,10 @@ export default function HomePage() {
         <div className="container stats-inner">
           {STATS.map((s, i) => (
             <div key={i} className="stat-item">
+              <div className="stat-icon">{s.icon}</div>
               <div className="stat-value">{s.value}</div>
               <div className="stat-label">{s.label}</div>
+              {i < STATS.length - 1 && <div className="stat-divider" />}
             </div>
           ))}
         </div>

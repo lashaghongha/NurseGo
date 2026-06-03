@@ -19,13 +19,15 @@ public class OrdersController : ControllerBase
     private readonly IHubContext<OrderHub> _hub;
     private readonly EmailService _email;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly PushService _push;
 
-    public OrdersController(AppDbContext db, IHubContext<OrderHub> hub, EmailService email, IServiceScopeFactory scopeFactory)
+    public OrdersController(AppDbContext db, IHubContext<OrderHub> hub, EmailService email, IServiceScopeFactory scopeFactory, PushService push)
     {
         _db = db;
         _hub = hub;
         _email = email;
         _scopeFactory = scopeFactory;
+        _push = push;
     }
 
     private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -299,6 +301,21 @@ public class OrdersController : ControllerBase
         // SignalR — კლიენტს ეცნობება სტატუსი
         await _hub.Clients.Group($"order-{id}")
             .SendAsync("StatusChanged", order.Status.ToString());
+
+        // Browser Push — შეტყობინება კლიენტს
+        var statusMessages = new Dictionary<string, (string title, string body)>
+        {
+            ["Assigned"]   = ("NurseGo 👩‍⚕️", "ექთანი დაინიშნა თქვენს შეკვეთაზე"),
+            ["EnRoute"]    = ("NurseGo 🚗", "ექთანი გამოემართა თქვენსკენ"),
+            ["Arrived"]    = ("NurseGo 🏠", "ექთანი თქვენთან მოვიდა"),
+            ["InProgress"] = ("NurseGo 💉", "მომსახურება დაიწყო"),
+            ["Completed"]  = ("NurseGo ✅", "მომსახურება წარმატებით დასრულდა!"),
+            ["Cancelled"]  = ("NurseGo ❌", "შეკვეთა გაუქმდა"),
+        };
+        if (statusMessages.TryGetValue(order.Status.ToString(), out var msg))
+        {
+            _ = _push.SendToUser(order.CustomerId, msg.title, msg.body, $"/tracking/{id}");
+        }
 
         return Ok(new { order.Status });
     }

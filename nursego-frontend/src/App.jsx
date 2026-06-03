@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { AppProvider, useApp } from './context/AppContext';
+import { pushService } from './services/push.service';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -26,9 +27,22 @@ const ProtectedRoute = ({ children, roles }) => {
 };
 
 const AppRoutes = () => {
+  const { currentUser } = useApp();
   useEffect(() => {
     AOS.init({ duration: 500, once: true, easing: 'ease-out-cubic', offset: 60 });
+    pushService.register(); // SW-ის რეგისტრაცია ყოველთვის
   }, []);
+
+  // შესული მომხმარებლისთვის push გამოწერა
+  useEffect(() => {
+    if (!currentUser) return;
+    pushService.isSubscribed().then(subscribed => {
+      if (!subscribed) {
+        // 3 წამის შემდეგ ვთხოვთ ნებართვას (რომ UX ბუნებრივი იყოს)
+        setTimeout(() => pushService.subscribe(), 3000);
+      }
+    });
+  }, [currentUser]);
   return (
   <>
     <Navbar />

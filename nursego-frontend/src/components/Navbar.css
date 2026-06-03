@@ -207,3 +207,18 @@
   transition: background 0.15s;
 }
 .notif-clear:hover { background: #f8fafc; color: var(--danger); }
+
+.notif-push-toggle {
+  width: 100%;
+  padding: 10px;
+  background: #eff6ff;
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.notif-push-toggle:hover { background: #dbeafe; }

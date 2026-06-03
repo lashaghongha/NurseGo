@@ -129,6 +129,16 @@ public class Rating
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
+public class PushSubscription
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string Endpoint { get; set; } = "";
+    public string P256dh { get; set; } = "";
+    public string Auth { get; set; } = "";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 // DTOs
 public record LoginRequest(string Email, string Password);
 public record RegisterRequest(string Name, string Email, string Password, string Role, string Phone = "");
@@ -137,6 +147,7 @@ public record RegisterNurseRequest(string Name, string Email, string Password, s
 public record UpdateNurseDistrictsRequest(string Districts);
 public record UpdateNurseServicesRequest(string Services);
 public record UpdatePhoneRequest(string Phone);
+public record PushSubscribeRequest(string Endpoint, string P256dh, string Auth);
 public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Email, string Token, string NewPassword);
 public record CancelOrderRequest(string? Reason);

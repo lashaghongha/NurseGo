@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { signalRService } from '../services/signalr.service';
+import { pushService } from '../services/push.service';
 import './Navbar.css';
 
 const STATUS_GE = {
@@ -19,8 +20,24 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifs, setNotifs] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
   const notifRef = useRef(null);
   const unread = notifs.filter(n => !n.read).length;
+
+  // push სტატუსის შემოწმება
+  useEffect(() => {
+    if (currentUser) pushService.isSubscribed().then(setPushEnabled);
+  }, [currentUser]);
+
+  const togglePush = async () => {
+    if (pushEnabled) {
+      await pushService.unsubscribe();
+      setPushEnabled(false);
+    } else {
+      const ok = await pushService.subscribe();
+      setPushEnabled(ok);
+    }
+  };
 
   // SignalR — შეტყობინებების მიღება
   useEffect(() => {
@@ -112,6 +129,11 @@ export default function Navbar() {
                     ))}
                     {notifs.length > 0 && (
                       <button className="notif-clear" onClick={() => setNotifs([])}>გასუფთავება</button>
+                    )}
+                    {pushService.isSupported() && (
+                      <button className="notif-push-toggle" onClick={togglePush}>
+                        {pushEnabled ? '🔕 Push გამორთვა' : '🔔 Push ჩართვა'}
+                      </button>
                     )}
                   </div>
                 )}

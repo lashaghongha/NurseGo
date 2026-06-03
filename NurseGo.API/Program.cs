@@ -28,6 +28,7 @@ builder.Services.AddScoped<AgoraTokenService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<SmsService>();
 builder.Services.AddScoped<BogPayService>();
+builder.Services.AddScoped<PushService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

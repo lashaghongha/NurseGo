@@ -1,46 +1,59 @@
-// Browser Push Notifications — ექთნისთვის
-// ServiceWorker-ის გარეშე — მხოლოდ Notification API (უფრო მარტივი)
+import api from './api';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
 
 export const pushService = {
-  // ნებართვა + subscription
-  async requestPermission() {
-    if (!('Notification' in window)) return false;
-    if (Notification.permission === 'granted') return true;
-    if (Notification.permission === 'denied') return false;
-    const result = await Notification.requestPermission();
-    return result === 'granted';
+  isSupported: () =>
+    'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
+
+  async register() {
+    if (!this.isSupported()) return null;
+    try {
+      return await navigator.serviceWorker.register('/sw.js');
+    } catch (e) {
+      console.warn('SW register failed:', e);
+      return null;
+    }
   },
 
-  isSupported() {
-    return 'Notification' in window;
+  async subscribe() {
+    if (!this.isSupported()) return false;
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return false;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const { data } = await api.get('/push/vapid-public-key');
+      const applicationServerKey = urlBase64ToUint8Array(data.publicKey);
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey });
+      const { endpoint, keys } = sub.toJSON();
+      await api.post('/push/subscribe', { endpoint, p256dh: keys.p256dh, auth: keys.auth });
+      return true;
+    } catch (e) {
+      console.warn('Push subscribe failed:', e);
+      return false;
+    }
   },
 
-  isGranted() {
-    return typeof Notification !== 'undefined' && Notification.permission === 'granted';
+  async unsubscribe() {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+      await api.delete('/push/unsubscribe');
+    } catch (e) { console.warn('unsubscribe failed:', e); }
   },
 
-  // ახალი შეკვეთის შეტყობინება ექთანს
-  notifyNewOrder(data) {
-    if (!this.isGranted()) return;
-    const n = new Notification('🆕 ახალი შეკვეთა — NurseGo', {
-      body: `${data.service} • ${data.district}${data.isOtherDistrict ? ' (სხვა უბანი)' : ''}\n💰 ${data.totalPrice}₾`,
-      icon: '/favicon.ico',
-      requireInteraction: true,
-      tag: `order-${data.orderId}`,
-    });
-    n.onclick = () => { window.focus(); n.close(); };
-    // 30 წამში ავტო-დახურვა
-    setTimeout(() => n.close(), 30000);
-  },
-
-  // შეკვეთა გაუქმდა
-  notifyOrderCancelled(orderId) {
-    if (!this.isGranted()) return;
-    const n = new Notification('❌ შეკვეთა გაუქმდა — NurseGo', {
-      body: `შეკვეთა #${orderId} კლიენტმა გააუქმა`,
-      icon: '/favicon.ico',
-      tag: `cancel-${orderId}`,
-    });
-    setTimeout(() => n.close(), 10000);
+  async isSubscribed() {
+    if (!this.isSupported()) return false;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      return !!sub && Notification.permission === 'granted';
+    } catch { return false; }
   },
 };

@@ -3,12 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import './HomePage.css';
 
 const SERVICES_PREVIEW = [
-  { icon: '💉', name: 'კუნთში ინექცია', price: 20, time: '30 წთ' },
-  { icon: '🩸', name: 'ვენაში ინექცია', price: 25, time: '30 წთ' },
-  { icon: '🧴', name: 'გადასხმა', price: 40, time: '2 სთ' },
+  { icon: '🩺', name: 'კუნთში ინექცია', price: 20, time: '30 წთ' },
+  { icon: '🔬', name: 'ვენაში ინექცია', price: 25, time: '30 წთ' },
+  { icon: '🏥', name: 'გადასხმა', price: 40, time: '2 სთ' },
   { icon: '🩹', name: 'ჭრილობის დამუშავება', price: 35, time: '45 წთ' },
-  { icon: '📏', name: 'წნევის გაზომვა', price: 15, time: '15 წთ' },
-  { icon: '👴', name: 'მოხუცის მოვლა', price: 20, time: '1 სთ' },
+  { icon: '❤️', name: 'წნევის გაზომვა', price: 15, time: '15 წთ' },
+  { icon: '🤝', name: 'მოხუცის მოვლა', price: 20, time: '1 სთ' },
 ];
 
 const STATS = [
@@ -76,7 +76,7 @@ export default function HomePage() {
                   <span className="svc-trigger-inner">
                     {selectedSvc
                       ? <><span className="svc-trigger-icon">{selectedSvc.icon}</span><span className="svc-trigger-name">{selectedSvc.name}</span><span className="svc-trigger-price">{selectedSvc.price}₾</span></>
-                      : <><span className="svc-trigger-placeholder">💊 მომსახურება...</span></>
+                      : <><span className="svc-trigger-placeholder">🩺 მომსახურება...</span></>
                     }
                   </span>
                   <span className="svc-chevron">{dropOpen ? '▲' : '▼'}</span>

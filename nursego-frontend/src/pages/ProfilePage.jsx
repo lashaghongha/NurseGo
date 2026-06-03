@@ -24,6 +24,22 @@ const STATUS_COLORS = {
   Blocked:  { bg: '#fee2e2', color: '#dc2626', label: '🔴 დაბლოკილი' },
 };
 
+const ALL_DISTRICTS = ['ვაკე','საბურთალო','გლდანი','დიდუბე','ნაძალადევი','ისანი','სამგორი','კრწანისი','დიღომი','ვარკეთილი'];
+const ALL_SERVICES = [
+  { icon: '💉', name: 'კუნთში ინექცია' },
+  { icon: '🩸', name: 'ვენაში ინექცია' },
+  { icon: '🧴', name: 'გადასხმა (IV)' },
+  { icon: '🔧', name: 'კათეტერის შეცვლა' },
+  { icon: '🩹', name: 'ჭრილობის დამუშავება' },
+  { icon: '✂️', name: 'ნაკერის მოხსნა' },
+  { icon: '📏', name: 'წნევის გაზომვა' },
+  { icon: '🍬', name: 'შაქრის გაზომვა' },
+  { icon: '👴', name: 'მოხუცის მოვლა (1 სთ)' },
+  { icon: '💊', name: 'მედიკამენტის ჩამოტანა' },
+  { icon: '🎥', name: 'ვიდეოკონსულტაცია' },
+  { icon: '🚨', name: 'SOS გამოძახება' },
+];
+
 export default function ProfilePage() {
   const { currentUser, userRole, logout } = useApp();
   const navigate = useNavigate();
@@ -33,6 +49,17 @@ export default function ProfilePage() {
   const [cancelId,     setCancelId]     = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoInputRef = React.useRef(null);
+
+  // phone edit
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [phoneInput,   setPhoneInput]   = useState('');
+
+  // edit modes
+  const [editingDistricts, setEditingDistricts] = useState(false);
+  const [editDistricts,    setEditDistricts]    = useState([]);
+  const [editingServices,  setEditingServices]  = useState(false);
+  const [editServices,     setEditServices]     = useState([]);
+  const [saving,           setSaving]           = useState(false);
 
   const handlePhotoChange = async (e) => {
     const file = e.target.files?.[0];
@@ -47,6 +74,42 @@ export default function ProfilePage() {
     } finally {
       setUploadingPhoto(false);
     }
+  };
+
+  const savePhone = async () => {
+    if (!phoneInput.trim()) { toast.error('ნომერი ცარიელია'); return; }
+    setSaving(true);
+    try {
+      await nursesService.updatePhone(phoneInput.trim());
+      setNurseData(prev => ({ ...prev, phone: phoneInput.trim() }));
+      setEditingPhone(false);
+      toast.success('ნომერი განახლდა!');
+    } catch { toast.error('შეცდომა'); }
+    finally { setSaving(false); }
+  };
+
+  const saveDistricts = async () => {
+    if (editDistricts.length === 0) { toast.error('მინიმუმ ერთი უბანი'); return; }
+    setSaving(true);
+    try {
+      await nursesService.updateDistricts(nurseData.id, editDistricts.join(','));
+      setNurseData(prev => ({ ...prev, districts: editDistricts.join(',') }));
+      setEditingDistricts(false);
+      toast.success('უბნები განახლდა!');
+    } catch { toast.error('შეცდომა'); }
+    finally { setSaving(false); }
+  };
+
+  const saveServices = async () => {
+    if (editServices.length === 0) { toast.error('მინიმუმ ერთი მომსახურება'); return; }
+    setSaving(true);
+    try {
+      await nursesService.updateServices(nurseData.id, editServices.join(','));
+      setNurseData(prev => ({ ...prev, services: editServices.join(',') }));
+      setEditingServices(false);
+      toast.success('მომსახურებები განახლდა!');
+    } catch { toast.error('შეცდომა'); }
+    finally { setSaving(false); }
   };
 
   useEffect(() => {
@@ -123,6 +186,39 @@ export default function ProfilePage() {
             </div>
             <div className="pc-name">{currentUser?.name}</div>
             <div className="pc-email">{currentUser?.email}</div>
+            {userRole === 'nurse' && (
+              <div style={{ marginTop:4, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', justifyContent:'center' }}>
+                {!editingPhone ? (
+                  <>
+                    {nurseData?.phone
+                      ? <a href={`tel:${nurseData.phone}`} style={{ fontSize:13, color:'var(--gray)' }}>📞 {nurseData.phone}</a>
+                      : <span style={{ fontSize:13, color:'#f59e0b' }}>⚠️ ნომერი არ არის</span>
+                    }
+                    <button type="button" className="np-edit-btn"
+                      style={{ fontSize:11, padding:'2px 8px' }}
+                      onClick={() => { setPhoneInput(nurseData?.phone || ''); setEditingPhone(true); }}>
+                      ✏️
+                    </button>
+                  </>
+                ) : (
+                  <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                    <input
+                      type="tel"
+                      value={phoneInput}
+                      onChange={e => setPhoneInput(e.target.value)}
+                      placeholder="+995 5XX XXX XXX"
+                      style={{ fontSize:13, padding:'4px 8px', border:'1.5px solid var(--primary)',
+                        borderRadius:8, width:160, fontFamily:'inherit' }}
+                      autoFocus
+                    />
+                    <button type="button" className="np-edit-btn np-save-btn" onClick={savePhone} disabled={saving}>
+                      {saving ? '⏳' : '✅'}
+                    </button>
+                    <button type="button" className="np-edit-btn" onClick={() => setEditingPhone(false)}>✖</button>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="pc-role">
               {userRole === 'customer' ? '👤 კლიენტი' : userRole === 'nurse' ? '👩‍⚕️ ექთანი' : '🔧 ადმინი'}
             </div>
@@ -223,25 +319,80 @@ export default function ProfilePage() {
 
                   {/* უბნები */}
                   <div className="card" style={{ padding:20 }}>
-                    <div className="np-section-title">📍 სამუშაო უბნები</div>
-                    <div className="np-district-chips">
-                      {(nurseData.districts || nurseData.district || '').split(',').filter(Boolean).map(d => (
-                        <span key={d} className="np-district-chip">{d.trim()}</span>
-                      ))}
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+                      <div className="np-section-title" style={{ marginBottom:0 }}>📍 სამუშაო უბნები</div>
+                      {!editingDistricts ? (
+                        <button type="button" className="np-edit-btn"
+                          onClick={() => { setEditDistricts((nurseData.districts||'').split(',').filter(Boolean).map(s=>s.trim())); setEditingDistricts(true); }}>
+                          ✏️ შეცვლა
+                        </button>
+                      ) : (
+                        <div style={{ display:'flex', gap:8 }}>
+                          <button type="button" className="np-edit-btn np-save-btn" onClick={saveDistricts} disabled={saving}>{saving?'⏳':'✅ შენახვა'}</button>
+                          <button type="button" className="np-edit-btn" onClick={() => setEditingDistricts(false)}>✖</button>
+                        </div>
+                      )}
                     </div>
+                    {!editingDistricts ? (
+                      <div className="np-district-chips">
+                        {(nurseData.districts || nurseData.district || '').split(',').filter(Boolean).map(d => (
+                          <span key={d} className="np-district-chip">{d.trim()}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="np-checkbox-grid">
+                        {ALL_DISTRICTS.map(d => (
+                          <label key={d} className={`np-checkbox-item ${editDistricts.includes(d) ? 'selected' : ''}`}>
+                            <input type="checkbox" checked={editDistricts.includes(d)}
+                              onChange={() => setEditDistricts(prev => prev.includes(d) ? prev.filter(x=>x!==d) : [...prev, d])} />
+                            📍 {d}
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* მომსახურებები */}
-                  {nurseData.services && (
-                    <div className="card" style={{ padding:20 }}>
-                      <div className="np-section-title">💉 მომსახურებები</div>
+                  <div className="card" style={{ padding:20 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+                      <div className="np-section-title" style={{ marginBottom:0 }}>💉 მომსახურებები</div>
+                      {!editingServices ? (
+                        <button type="button" className="np-edit-btn"
+                          onClick={() => { setEditServices((nurseData.services||'').split(',').filter(Boolean).map(s=>s.trim())); setEditingServices(true); }}>
+                          ✏️ შეცვლა
+                        </button>
+                      ) : (
+                        <div style={{ display:'flex', gap:8 }}>
+                          <button type="button" className="np-edit-btn np-save-btn" onClick={saveServices} disabled={saving}>{saving?'⏳':'✅ შენახვა'}</button>
+                          <button type="button" className="np-edit-btn" onClick={() => setEditingServices(false)}>✖</button>
+                        </div>
+                      )}
+                    </div>
+                    {!editingServices ? (
                       <div className="np-service-chips">
-                        {nurseData.services.split(',').filter(Boolean).map(s => (
+                        {(nurseData.services||'').split(',').filter(Boolean).map(s => (
                           <span key={s} className="np-chip">{s.trim()}</span>
                         ))}
+                        {!nurseData.services && <span style={{color:'var(--gray)',fontSize:13}}>მომსახურება არ არის მითითებული</span>}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <>
+                        <button type="button" className="np-select-all-btn"
+                          onClick={() => setEditServices(prev => prev.length === ALL_SERVICES.length ? [] : ALL_SERVICES.map(s=>s.name))}>
+                          {editServices.length === ALL_SERVICES.length ? '❌ გაუქმება' : '✅ ყველა'}
+                        </button>
+                        <div className="np-checkbox-grid">
+                          {ALL_SERVICES.map(s => (
+                            <label key={s.name} className={`np-checkbox-item ${editServices.includes(s.name) ? 'selected' : ''}`}>
+                              <input type="checkbox" checked={editServices.includes(s.name)}
+                                onChange={() => setEditServices(prev => prev.includes(s.name) ? prev.filter(x=>x!==s.name) : [...prev, s.name])} />
+                              {s.icon} {s.name}
+                            </label>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
 
                   {/* ბოლო შეკვეთები */}
                   {nurseData.recentOrders?.length > 0 && (

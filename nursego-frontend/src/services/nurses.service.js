@@ -13,6 +13,12 @@ export const nursesService = {
   updateDistricts: (id, districts) =>
     api.put(`/nurses/${id}/districts`, { districts }).then(r => r.data),
 
+  updateServices: (id, services) =>
+    api.put(`/nurses/${id}/services`, { services }).then(r => r.data),
+
+  updatePhone: (phone) =>
+    api.put('/nurses/me/phone', { phone }).then(r => r.data),
+
   updateLocation: (id, lat, lng) =>
     api.put(`/nurses/${id}/location`, { lat, lng }).then(r => r.data),
 

@@ -1,13 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { signalRService } from '../services/signalr.service';
 import './Navbar.css';
+
+const STATUS_GE = {
+  Assigned: 'ექთანი დაინიშნა',
+  EnRoute: 'ექთანი გზაშია',
+  InProgress: 'მომსახურება დაიწყო',
+  Completed: 'მომსახურება დასრულდა',
+  Cancelled: 'შეკვეთა გაუქმდა',
+};
 
 export default function Navbar() {
   const { currentUser, userRole, logout } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifs, setNotifs] = useState([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef(null);
+  const unread = notifs.filter(n => !n.read).length;
+
+  // SignalR — შეტყობინებების მიღება
+  useEffect(() => {
+    if (!currentUser) return;
+    signalRService.connect().catch(() => {});
+
+    const handleStatus = (status) => {
+      const text = STATUS_GE[status] || status;
+      setNotifs(prev => [{ id: Date.now(), text, time: new Date(), read: false }, ...prev.slice(0, 19)]);
+    };
+    const handleNew = () => {
+      if (userRole === 'nurse') {
+        setNotifs(prev => [{ id: Date.now(), text: 'ახალი შეკვეთა!', time: new Date(), read: false }, ...prev.slice(0, 19)]);
+      }
+    };
+    signalRService.on('StatusChanged', handleStatus);
+    signalRService.on('NewOrder', handleNew);
+    return () => {
+      signalRService.off('StatusChanged', handleStatus);
+      signalRService.off('NewOrder', handleNew);
+    };
+  }, [currentUser, userRole]);
+
+  // დახურვა outside click-ზე
+  useEffect(() => {
+    const handler = (e) => { if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -51,6 +93,29 @@ export default function Navbar() {
         <div className="navbar-actions">
           {currentUser ? (
             <div className="user-menu">
+              {/* შეტყობინებების ზარი */}
+              <div className="notif-wrap" ref={notifRef}>
+                <button className="notif-bell" onClick={() => { setNotifOpen(o => !o); setNotifs(prev => prev.map(n => ({...n, read:true}))); }}>
+                  🔔
+                  {unread > 0 && <span className="notif-badge">{unread}</span>}
+                </button>
+                {notifOpen && (
+                  <div className="notif-dropdown">
+                    <div className="notif-header">შეტყობინებები</div>
+                    {notifs.length === 0 ? (
+                      <div className="notif-empty">შეტყობინება არ არის</div>
+                    ) : notifs.map(n => (
+                      <div key={n.id} className={`notif-item ${n.read ? '' : 'unread'}`}>
+                        <span className="notif-text">{n.text}</span>
+                        <span className="notif-time">{new Date(n.time).toLocaleTimeString('ka-GE', {hour:'2-digit',minute:'2-digit'})}</span>
+                      </div>
+                    ))}
+                    {notifs.length > 0 && (
+                      <button className="notif-clear" onClick={() => setNotifs([])}>გასუფთავება</button>
+                    )}
+                  </div>
+                )}
+              </div>
               <Link to="/profile" className="user-avatar">
                 <div className="avatar-circle">{currentUser.name?.charAt(0)}</div>
                 <span>{currentUser.name}</span>

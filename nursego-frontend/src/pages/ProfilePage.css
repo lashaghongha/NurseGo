@@ -43,6 +43,34 @@
   background: #f0fdf4; color: #15803d; border-radius: 20px;
   padding: 5px 14px; font-size: 13px; font-weight: 600;
 }
+.np-edit-btn {
+  background: #f1f5f9; border: 1.5px solid #e2e8f0; border-radius: 20px;
+  padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+  font-family: inherit; color: var(--gray); transition: all 0.15s;
+}
+.np-edit-btn:hover { background: #e2e8f0; color: var(--dark); }
+.np-save-btn { background: #dcfce7; border-color: #86efac; color: #15803d; }
+.np-save-btn:hover { background: #bbf7d0; }
+
+.np-select-all-btn {
+  margin-bottom: 8px; background: #f0fdf4; border: 1.5px solid var(--secondary);
+  color: var(--secondary); border-radius: 20px; padding: 4px 14px; font-size: 12px;
+  font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.np-select-all-btn:hover { background: var(--secondary); color: white; }
+
+.np-checkbox-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 4px;
+}
+.np-checkbox-item {
+  display: flex; align-items: center; gap: 6px; padding: 7px 10px;
+  border: 2px solid #e2e8f0; border-radius: 10px; cursor: pointer;
+  font-size: 12px; font-weight: 500; transition: all 0.15s; user-select: none;
+}
+.np-checkbox-item input[type="checkbox"] { display: none; }
+.np-checkbox-item:hover { border-color: var(--primary); background: #eff6ff; }
+.np-checkbox-item.selected { border-color: var(--primary); background: #eff6ff; color: var(--primary-dark); font-weight: 700; }
+
 .np-order { display: flex; justify-content: space-between; align-items: center;
   padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
 .np-order:last-child { border-bottom: none; }

@@ -64,7 +64,20 @@
 .onc-rating { font-size: 13px; color: #f59e0b; }
 .onc-wait { font-size: 13px; color: var(--gray); }
 .onc-price { font-size: 22px; font-weight: 900; color: var(--primary); }
-.onc-btn { width: 100%; justify-content: center; }
+.onc-call-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+.onc-btn { width: 100%; justify-content: center; font-size: 13px; }
+
+/* Audio wave bars */
+.audio-bar {
+  width: 6px;
+  border-radius: 3px;
+  background: white;
+  animation: audioWave 0.8s ease-in-out infinite alternate;
+}
+@keyframes audioWave {
+  from { height: 8px; opacity: 0.4; }
+  to   { height: 40px; opacity: 1; }
+}
 
 .vc-how { background: white; border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); }
 

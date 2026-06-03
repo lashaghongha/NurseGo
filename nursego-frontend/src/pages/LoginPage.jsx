@@ -19,10 +19,38 @@ export default function LoginPage() {
   const [experience, setExperience] = useState(1);
 
   const ALL_DISTRICTS = ['ვაკე','საბურთალო','გლდანი','დიდუბე','ნაძალადევი','ისანი','სამგორი','კრწანისი','დიღომი','ვარკეთილი'];
+  const ALL_SERVICES = [
+    { icon: '💉', name: 'კუნთში ინექცია' },
+    { icon: '🩸', name: 'ვენაში ინექცია' },
+    { icon: '🧴', name: 'გადასხმა (IV)' },
+    { icon: '🔧', name: 'კათეტერის შეცვლა' },
+    { icon: '🩹', name: 'ჭრილობის დამუშავება' },
+    { icon: '✂️', name: 'ნაკერის მოხსნა' },
+    { icon: '📏', name: 'წნევის გაზომვა' },
+    { icon: '🍬', name: 'შაქრის გაზომვა' },
+    { icon: '👴', name: 'მოხუცის მოვლა (1 სთ)' },
+    { icon: '💊', name: 'მედიკამენტის ჩამოტანა' },
+    { icon: '🎥', name: 'ვიდეოკონსულტაცია' },
+    { icon: '🚨', name: 'SOS გამოძახება' },
+  ];
+
+  const [selectedServices, setSelectedServices] = useState([]);
 
   const toggleDistrict = (d) => {
     setDistricts(prev =>
       prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]
+    );
+  };
+
+  const toggleService = (s) => {
+    setSelectedServices(prev =>
+      prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+    );
+  };
+
+  const toggleAllServices = () => {
+    setSelectedServices(prev =>
+      prev.length === ALL_SERVICES.length ? [] : ALL_SERVICES.map(s => s.name)
     );
   };
   const [loading, setLoading] = useState(false);
@@ -46,12 +74,17 @@ export default function LoginPage() {
             setLoading(false);
             return;
           }
+          if (selectedServices.length === 0) {
+            toast.error('მინიმუმ ერთი მომსახურება უნდა აირჩიო');
+            setLoading(false);
+            return;
+          }
           data = await authService.registerNurse({
             name, email, password, phone,
             licenseNumber: license,
             districts: districts.join(','),
             experienceYears: Number(experience),
-            services: 'ინექცია,გადასხმა',
+            services: selectedServices.join(','),
           });
         } else {
           data = await authService.register({ name, email, password, phone, role: 'Customer' });
@@ -158,9 +191,10 @@ export default function LoginPage() {
                   placeholder="მარიამ გიორგაძე" className="form-input" required />
               </div>
               <div className="form-group">
-                <label>ტელეფონი</label>
+                <label>ტელეფონი {role === 'nurse' && <span style={{color:'var(--danger)'}}>*</span>}</label>
                 <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                  placeholder="+995 5XX XXX XXX" className="form-input" />
+                  placeholder="+995 5XX XXX XXX" className="form-input"
+                  required={role === 'nurse'} />
               </div>
             </>
           )}
@@ -197,6 +231,31 @@ export default function LoginPage() {
                 {districts.length > 0 && (
                   <div style={{fontSize:12,color:'var(--primary)',marginTop:6}}>
                     ✅ არჩეული: {districts.join(', ')}
+                  </div>
+                )}
+              </div>
+              <div className="form-group">
+                <label>
+                  მომსახურებები * <span style={{fontSize:12,color:'var(--gray)',fontWeight:400}}>(შეგიძლია რამდენიმე აირჩიო)</span>
+                </label>
+                <button
+                  type="button"
+                  className="select-all-btn"
+                  onClick={toggleAllServices}
+                >
+                  {selectedServices.length === ALL_SERVICES.length ? '❌ გაუქმება' : '✅ ყველა'}
+                </button>
+                <div className="district-checkbox-grid services-checkbox-grid">
+                  {ALL_SERVICES.map(s => (
+                    <label key={s.name} className={`district-checkbox-item ${selectedServices.includes(s.name) ? 'selected' : ''}`}>
+                      <input type="checkbox" checked={selectedServices.includes(s.name)} onChange={() => toggleService(s.name)} />
+                      {s.icon} {s.name}
+                    </label>
+                  ))}
+                </div>
+                {selectedServices.length > 0 && (
+                  <div style={{fontSize:12,color:'var(--primary)',marginTop:6}}>
+                    ✅ არჩეული: {selectedServices.length} მომსახურება
                   </div>
                 )}
               </div>

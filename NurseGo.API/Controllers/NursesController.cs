@@ -32,7 +32,7 @@ public class NursesController : ControllerBase
 
         var nurses = await query.Select(n => new {
             n.Id, n.District, n.Districts, n.ExperienceYears, n.Status, n.Rating, n.TotalOrders,
-            n.Services, n.LicenseNumber, n.IsVerified, n.IsPremium,
+            n.Services, n.LicenseNumber, n.IsVerified, n.IsPremium, n.PhotoUrl,
             Name = n.User!.Name,
         }).ToListAsync();
 
@@ -75,6 +75,33 @@ public class NursesController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(new { nurse.Districts, nurse.District });
+    }
+
+    [HttpPut("{id}/services")]
+    [Authorize(Roles = "Nurse")]
+    public async Task<IActionResult> UpdateServices(int id, UpdateNurseServicesRequest req)
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var nurse = await _db.Nurses.FindAsync(id);
+        if (nurse == null) return NotFound();
+        if (nurse.UserId != userId) return Forbid();
+
+        nurse.Services = req.Services;
+        await _db.SaveChangesAsync();
+        return Ok(new { nurse.Services });
+    }
+
+    [HttpPut("me/phone")]
+    [Authorize(Roles = "Nurse")]
+    public async Task<IActionResult> UpdatePhone([FromBody] UpdatePhoneRequest req)
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) return NotFound();
+
+        user.Phone = req.Phone;
+        await _db.SaveChangesAsync();
+        return Ok(new { phone = user.Phone });
     }
 
     // POST /api/nurses/me/photo — პროფილის ფოტო

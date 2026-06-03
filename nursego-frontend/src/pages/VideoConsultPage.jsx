@@ -26,6 +26,7 @@ export default function VideoConsultPage() {
   ]);
   const [remoteUsers, setRemoteUsers] = useState([]);
   const [networkQuality, setNetworkQuality] = useState(null);
+  const [callMode, setCallMode] = useState('video'); // 'video' | 'audio'
 
   const localVideoRef = useRef(null);
   const localTrackRef = useRef({ audio: null, video: null });
@@ -104,43 +105,41 @@ export default function VideoConsultPage() {
   }, []);
 
   // ——— Start Call ———
-  const startCall = useCallback(async (nurse) => {
+  const startCall = useCallback(async (nurse, mode = 'video') => {
     setSelectedNurse(nurse);
+    setCallMode(mode);
     setCallState('waiting');
 
     try {
-      // 1. Backend-იდან Agora token და appId
       const channelName = `nursego-consult-${nurse.id}-${Date.now()}`;
       const { token, appId } = await videoService.getToken(channelName, 0);
-
-      // 2. Agora channel-ში შეყვანა
       await agoraClient.join(appId, channelName, token, null);
 
-      // 3. ლოკალური კამერა და მიკროფონი
-      const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-      localTrackRef.current = { audio: audioTrack, video: videoTrack };
-
-      // 4. ლოკალი ვიდეოს ჩვენება
-      videoTrack.play('local-video');
-
-      // 5. Publish — ყველა channel-ში ხედავს
-      await agoraClient.publish([audioTrack, videoTrack]);
+      if (mode === 'audio') {
+        // ხმოვანი ზარი — მხოლოდ მიკროფონი
+        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        localTrackRef.current = { audio: audioTrack, video: null };
+        await agoraClient.publish([audioTrack]);
+      } else {
+        // ვიდეო ზარი — კამერა + მიკროფონი
+        const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+        localTrackRef.current = { audio: audioTrack, video: videoTrack };
+        videoTrack.play('local-video');
+        await agoraClient.publish([audioTrack, videoTrack]);
+      }
 
       setCallState('in_call');
       toast.success(`${nurse.name}-თან კავშირი დამყარდა!`);
 
     } catch (err) {
       console.error('Agora error:', err);
-
       if (err.message?.includes('PERMISSION_DENIED') || err.name === 'NotAllowedError') {
-        toast.error('კამერის/მიკროფონის წვდომა უარყოფილია. გთხოვ, ნებართვა მიეცი ბრაუზერს.');
-        setCallState(null);
-        setSelectedNurse(null);
+        toast.error('მიკროფონის წვდომა უარყოფილია. გთხოვ, ნებართვა მიეცი ბრაუზერს.');
       } else {
         toast.error('კავშირი ვერ დამყარდა. ცადე თავიდან.');
-        setCallState(null);
-        setSelectedNurse(null);
       }
+      setCallState(null);
+      setSelectedNurse(null);
     }
   }, []);
 
@@ -217,9 +216,26 @@ export default function VideoConsultPage() {
   if (callState === 'waiting' || callState === 'in_call') {
     return (
       <div className="video-call-screen">
-        {/* Remote video (ექთნის ვიდეო) */}
+        {/* Remote video / audio */}
         <div className="remote-video">
-          {callState === 'waiting' || remoteUsers.length === 0 ? (
+          {callMode === 'audio' ? (
+            // ხმოვანი ზარი — კამერის გარეშე
+            <div className="connecting-screen">
+              <div className="conn-avatar" style={{ fontSize: 80 }}>📞</div>
+              <div className="conn-name">{selectedNurse?.name}</div>
+              <div className="conn-status">
+                {callState === 'waiting' ? '🔄 დაკავშირება...' : '🎤 ხმოვანი ზარი მიმდინარეობს'}
+              </div>
+              {callState === 'waiting' && <div className="conn-dots"><span /><span /><span /></div>}
+              {callState === 'in_call' && (
+                <div style={{ display:'flex', gap:6, marginTop:16 }}>
+                  {[0,1,2,3,4].map(i => (
+                    <div key={i} className="audio-bar" style={{ animationDelay:`${i*0.15}s` }} />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : callState === 'waiting' || remoteUsers.length === 0 ? (
             <div className="connecting-screen">
               <div className="conn-avatar pulse">{selectedNurse?.avatar}</div>
               <div className="conn-name">{selectedNurse?.name}</div>
@@ -235,7 +251,8 @@ export default function VideoConsultPage() {
           )}
         </div>
 
-        {/* Local video (ჩვენი ვიდეო — პატარა კუთხეში) */}
+        {/* Local video (მხოლოდ ვიდეო რეჟიმში) */}
+        {callMode === 'video' && (
         <div className="local-video-wrap">
           {isCamOff ? (
             <div className="cam-off-placeholder">📷 გამორთ.</div>
@@ -243,6 +260,7 @@ export default function VideoConsultPage() {
             <div id="local-video" className="local-video" />
           )}
         </div>
+        )}
 
         {/* Timer */}
         {callState === 'in_call' && (
@@ -276,9 +294,11 @@ export default function VideoConsultPage() {
           <button className={`ctrl-btn ${isMuted ? 'active-ctrl' : ''}`} onClick={toggleMute} title="მიკროფონი">
             {isMuted ? '🔇' : '🎤'}
           </button>
-          <button className={`ctrl-btn ${isCamOff ? 'active-ctrl' : ''}`} onClick={toggleCamera} title="კამერა">
-            {isCamOff ? '📷' : '📸'}
-          </button>
+          {callMode === 'video' && (
+            <button className={`ctrl-btn ${isCamOff ? 'active-ctrl' : ''}`} onClick={toggleCamera} title="კამერა">
+              {isCamOff ? '📷' : '📸'}
+            </button>
+          )}
           <button className="ctrl-btn" onClick={() => setChatOpen(o => !o)} title="ჩატი">💬</button>
           <button className="ctrl-btn end-call" onClick={endCall} title="გათიშვა">📵</button>
         </div>
@@ -343,9 +363,14 @@ export default function VideoConsultPage() {
               )}
               <div className="onc-wait">⏳ {nurse.wait} მოლოდინი</div>
               <div className="onc-price">{nurse.price}₾ / სეანსი</div>
-              <button className="btn btn-primary onc-btn" onClick={() => startCall(nurse)}>
-                📹 ვიდეოზე დაკავშირება
-              </button>
+              <div className="onc-call-btns">
+                <button className="btn btn-primary onc-btn" onClick={() => startCall(nurse, 'video')}>
+                  📹 ვიდეო
+                </button>
+                <button className="btn btn-outline onc-btn" onClick={() => startCall(nurse, 'audio')}>
+                  📞 ხმოვანი
+                </button>
+              </div>
             </div>
           ))}
         </div>

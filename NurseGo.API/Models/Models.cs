@@ -135,6 +135,8 @@ public record RegisterRequest(string Name, string Email, string Password, string
 public record RegisterNurseRequest(string Name, string Email, string Password, string Phone,
     string LicenseNumber, string Districts, int ExperienceYears, string Services);
 public record UpdateNurseDistrictsRequest(string Districts);
+public record UpdateNurseServicesRequest(string Services);
+public record UpdatePhoneRequest(string Phone);
 public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Email, string Token, string NewPassword);
 public record CancelOrderRequest(string? Reason);

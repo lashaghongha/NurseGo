@@ -4,6 +4,29 @@ import { nursesService } from '../services/nurses.service';
 import toast from 'react-hot-toast';
 import './NursesPage.css';
 
+const API_BASE = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace('/api', '');
+
+function NurseAvatar({ nurse, size = 56 }) {
+  if (nurse?.photoUrl) {
+    return (
+      <img
+        src={`${API_BASE}${nurse.photoUrl}`}
+        alt={nurse.name}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover',
+          border: '2px solid #e2e8f0', flexShrink: 0 }}
+        onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
+      />
+    );
+  }
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', background: '#eff6ff',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.5, flexShrink: 0 }}>
+      👩‍⚕️
+    </div>
+  );
+}
+
 const STATUS_MAP = {
   Active:   { label: '🟢 აქტიური',   cls: 'badge-active' },
   Busy:     { label: '🟡 დაკავებული', cls: 'badge-busy' },
@@ -68,7 +91,7 @@ export default function NursesPage() {
                 <div key={nurse.id} className="nurse-card" onClick={() => setSelectedNurse(nurse)}
                   data-aos="fade-up" data-aos-delay={Math.min(idx * 50, 300)}>
                   <div className="nc-top">
-                    <div className="nc-avatar">👩‍⚕️</div>
+                    <NurseAvatar nurse={nurse} size={56} />
                     <span className={`badge ${STATUS_MAP[nurse.status]?.cls || 'badge-offline'}`}>
                       {STATUS_MAP[nurse.status]?.label || nurse.status}
                     </span>
@@ -108,7 +131,7 @@ export default function NursesPage() {
           <div className="nurse-modal" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setSelectedNurse(null)}>✕</button>
             <div className="modal-top">
-              <div className="modal-avatar">👩‍⚕️</div>
+              <NurseAvatar nurse={selectedNurse} size={72} />
               <div>
                 <h2>{selectedNurse.name}</h2>
                 <div className="nc-license">🪪 {selectedNurse.licenseNumber}</div>

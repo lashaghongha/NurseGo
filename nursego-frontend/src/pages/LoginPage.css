@@ -12,7 +12,7 @@
   border-radius: 20px;
   padding: 40px;
   width: 100%;
-  max-width: 420px;
+  max-width: 480px;
   box-shadow: var(--shadow-lg);
 }
 
@@ -131,6 +131,26 @@
   .district-checkbox-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
   .district-checkbox-item { padding: 7px 10px; font-size: 12px; }
   .login-btn { padding: 13px; }
+}
+
+.select-all-btn {
+  margin-top: 6px;
+  margin-bottom: 4px;
+  background: #f0fdf4;
+  border: 1.5px solid var(--secondary);
+  color: var(--secondary);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+.select-all-btn:hover { background: var(--secondary); color: white; }
+
+.services-checkbox-grid {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .district-badge {

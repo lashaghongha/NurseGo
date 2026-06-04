@@ -256,7 +256,7 @@ export default function HomePage() {
       <footer className="footer">
         <div className="container footer-inner">
           <div className="footer-brand">
-            <span>🏥 NurseGo</span>
+            <span>🏥 MyNurse</span>
             <p>სახლში სამედიცინო მომსახურება</p>
           </div>
           <div className="footer-links">
@@ -264,7 +264,7 @@ export default function HomePage() {
             <Link to="/nurses">ექთნები</Link>
             <Link to="/login">შესვლა</Link>
           </div>
-          <div className="footer-copy">© 2025 NurseGo Georgia</div>
+          <div className="footer-copy">© 2025 MyNurse Georgia</div>
         </div>
       </footer>
     </div>

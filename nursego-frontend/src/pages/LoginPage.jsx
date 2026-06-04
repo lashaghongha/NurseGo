@@ -131,7 +131,7 @@ export default function LoginPage() {
   if (forgotMode) return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-brand">🏥 NurseGo</div>
+        <div className="login-brand">🏥 MyNurse</div>
         <h2 className="login-title">🔑 პაროლის აღდგენა</h2>
         <form className="login-form" onSubmit={handleForgotSubmit}>
           {resetStep === 1 ? (
@@ -168,7 +168,7 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-brand">🏥 NurseGo</div>
+        <div className="login-brand">🏥 MyNurse</div>
         <h2 className="login-title">{isRegister ? 'რეგისტრაცია' : 'შესვლა'}</h2>
 
         {isRegister && (

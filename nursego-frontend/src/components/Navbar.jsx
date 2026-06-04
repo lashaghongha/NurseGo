@@ -80,7 +80,7 @@ export default function Navbar() {
       <div className="container navbar-inner">
         <Link to="/" className="navbar-brand">
           <span className="brand-icon">🏥</span>
-          <span className="brand-name">NurseGo</span>
+          <span className="brand-name">MyNurse</span>
         </Link>
 
         <div className={`navbar-links ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(false)}>

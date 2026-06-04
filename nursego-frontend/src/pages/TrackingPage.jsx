@@ -387,13 +387,26 @@ export default function TrackingPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
                       <div>
                         <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>რა მომსახურება მიიღე? *</label>
-                        <input
-                          type="text"
+                        <select
                           value={receiptService}
                           onChange={e => setReceiptService(e.target.value)}
-                          placeholder="მაგ: კუნთში ინექცია"
-                          style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
-                        />
+                          style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', background: 'white', cursor: 'pointer' }}
+                        >
+                          <option value="">— აირჩიე მომსახურება —</option>
+                          {['კუნთში ინექცია','ვენაში ინექცია','გადასხმა (IV)','კათეტერის შეცვლა',
+                            'ჭრილობის დამუშავება','ნაკერის მოხსნა','წნევის გაზომვა','შაქრის გაზომვა',
+                            'მოხუცის მოვლა (1 სთ)','მედიკამენტის ჩამოტანა','ვიდეოკონსულტაცია','SOS გამოძახება'
+                          ].map(s => <option key={s} value={s}>{s}</option>)}
+                          <option value="სხვა">სხვა (ხელით ჩაწერე)</option>
+                        </select>
+                        {receiptService === 'სხვა' && (
+                          <input
+                            type="text"
+                            placeholder="მომსახურების სახელი..."
+                            onChange={e => setReceiptService(e.target.value === 'სხვა' ? '' : e.target.value)}
+                            style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', marginTop: 8 }}
+                          />
+                        )}
                       </div>
                       <div>
                         <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>რა გადაიხადე? (₾) *</label>

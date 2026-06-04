@@ -24,4 +24,10 @@ export const ordersService = {
 
   getAvailable: () =>
     api.get('/orders/available').then(r => r.data),
+
+  rate: (id, stars, comment = '') =>
+    api.post(`/orders/${id}/rate`, { stars, comment }).then(r => r.data),
+
+  getRating: (id) =>
+    api.get(`/orders/${id}/rating`).then(r => r.data),
 };

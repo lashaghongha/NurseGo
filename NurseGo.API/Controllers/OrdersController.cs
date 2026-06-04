@@ -391,4 +391,53 @@ public class OrdersController : ControllerBase
 
         return Ok();
     }
+
+    // ─── POST /api/orders/{id}/rate ──────────────────────────────────────────
+    [HttpPost("{id}/rate")]
+    [Authorize(Roles = "Customer")]
+    public async Task<IActionResult> RateOrder(int id, [FromBody] RateOrderRequest req)
+    {
+        var order = await _db.Orders.FindAsync(id);
+        if (order == null) return NotFound();
+        if (order.CustomerId != UserId) return Forbid();
+        if (order.Status != OrderStatus.Completed)
+            return BadRequest(new { message = "შეფასება მხოლოდ დასრულებულ შეკვეთაზეა შესაძლებელი" });
+        if (await _db.Ratings.AnyAsync(r => r.OrderId == id))
+            return BadRequest(new { message = "ეს შეკვეთა უკვე შეფასებულია" });
+
+        var rating = new Rating
+        {
+            OrderId    = id,
+            NurseId    = order.NurseId!.Value,
+            CustomerId = UserId,
+            Stars      = Math.Clamp(req.Stars, 1, 5),
+            Comment    = req.Comment ?? "",
+        };
+        _db.Ratings.Add(rating);
+
+        // ექთნის საშუალო რეიტინგის განახლება
+        var nurse = await _db.Nurses.FindAsync(order.NurseId!.Value);
+        if (nurse != null)
+        {
+            var allRatings = await _db.Ratings
+                .Where(r => r.NurseId == nurse.Id)
+                .Select(r => r.Stars)
+                .ToListAsync();
+            allRatings.Add(req.Stars);
+            nurse.Rating = Math.Round(allRatings.Average(), 1);
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "შეფასება დამახსოვრდა!" });
+    }
+
+    // ─── GET /api/orders/{id}/rating ─────────────────────────────────────────
+    [HttpGet("{id}/rating")]
+    [Authorize]
+    public async Task<IActionResult> GetRating(int id)
+    {
+        var rating = await _db.Ratings.FirstOrDefaultAsync(r => r.OrderId == id);
+        if (rating == null) return Ok(null);
+        return Ok(new { rating.Stars, rating.Comment, rating.CreatedAt });
+    }
 }

@@ -61,6 +61,31 @@ export default function ProfilePage() {
   const [editServices,     setEditServices]     = useState([]);
   const [saving,           setSaving]           = useState(false);
 
+  // rating modal
+  const [ratingOrder,  setRatingOrder]  = useState(null); // order being rated
+  const [ratingStars,  setRatingStars]  = useState(5);
+  const [ratingComment,setRatingComment]= useState('');
+  const [ratingDone,   setRatingDone]   = useState({}); // { [orderId]: true }
+  const [submittingRating, setSubmittingRating] = useState(false);
+
+  const openRating = (order) => { setRatingOrder(order); setRatingStars(5); setRatingComment(''); };
+  const closeRating = () => setRatingOrder(null);
+
+  const submitRating = async () => {
+    if (!ratingOrder) return;
+    setSubmittingRating(true);
+    try {
+      await ordersService.rate(ratingOrder.id, ratingStars, ratingComment);
+      setRatingDone(prev => ({ ...prev, [ratingOrder.id]: true }));
+      toast.success('შეფასება გამოგზავნილია! ⭐');
+      closeRating();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'შეცდომა');
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
+
   const handlePhotoChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -507,11 +532,22 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       </div>
-                      <div style={{ display:'flex', gap:8, marginTop:12 }}>
+                      <div style={{ display:'flex', gap:8, marginTop:12, flexWrap:'wrap' }}>
                         {o.status !== 'Cancelled' && o.status !== 'Pending' && (
                           <Link to={`/tracking/${o.id}`} className="btn btn-outline btn-sm">
                             📍 თვალყური
                           </Link>
+                        )}
+                        {o.status === 'Completed' && o.nurseId && (
+                          ratingDone[o.id] ? (
+                            <span style={{ fontSize:13, color:'#15803d', fontWeight:600 }}>✅ შეფასებულია</span>
+                          ) : (
+                            <button className="btn btn-sm"
+                              style={{ background:'#fbbf24', color:'#1a1a1a', border:'none', borderRadius:8, padding:'6px 14px', cursor:'pointer', fontWeight:700 }}
+                              onClick={() => openRating(o)}>
+                              ⭐ შეფასება
+                            </button>
+                          )
                         )}
                         {canCancel && (
                           cancelId === o.id ? (
@@ -539,5 +575,53 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+
+    {/* ─── Rating Modal ─────────────────────────────────────────────────── */}
+    {ratingOrder && (
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex',
+        alignItems:'center', justifyContent:'center', zIndex:2000, padding:20 }}
+        onClick={closeRating}>
+        <div style={{ background:'white', borderRadius:16, padding:28, width:'100%', maxWidth:400,
+          boxShadow:'0 20px 60px rgba(0,0,0,0.3)' }}
+          onClick={e => e.stopPropagation()}>
+          <h3 style={{ margin:'0 0 4px', fontSize:18 }}>⭐ ექთნის შეფასება</h3>
+          <p style={{ color:'var(--gray)', fontSize:13, marginBottom:20 }}>
+            👩‍⚕️ {ratingOrder.nurse?.user?.name}
+          </p>
+
+          {/* Stars */}
+          <div style={{ display:'flex', gap:8, justifyContent:'center', marginBottom:20 }}>
+            {[1,2,3,4,5].map(s => (
+              <button key={s} onClick={() => setRatingStars(s)}
+                style={{ background:'none', border:'none', cursor:'pointer',
+                  fontSize: 36, opacity: s <= ratingStars ? 1 : 0.3,
+                  transition:'all 0.1s', transform: s <= ratingStars ? 'scale(1.1)' : 'scale(1)' }}>
+                ⭐
+              </button>
+            ))}
+          </div>
+
+          {/* Comment */}
+          <textarea
+            value={ratingComment}
+            onChange={e => setRatingComment(e.target.value)}
+            placeholder="კომენტარი (სურვილისამებრ)..."
+            rows={3}
+            style={{ width:'100%', border:'1.5px solid #e2e8f0', borderRadius:10, padding:'10px 12px',
+              fontSize:14, fontFamily:'inherit', resize:'vertical', boxSizing:'border-box',
+              outline:'none', marginBottom:16 }}
+          />
+
+          <div style={{ display:'flex', gap:10 }}>
+            <button className="btn btn-outline" style={{ flex:1 }} onClick={closeRating}>გაუქმება</button>
+            <button className="btn btn-primary" style={{ flex:2 }}
+              disabled={submittingRating}
+              onClick={submitRating}>
+              {submittingRating ? '⏳...' : '✅ გამოგზავნა'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   );
 }

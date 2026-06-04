@@ -162,3 +162,5 @@ public record SubmitRatingRequest(int OrderId, int NurseId, int Stars, string Co
 public record UpdateServicePriceRequest(decimal Price);
 public record AuthResponse(string Token, UserDto User);
 public record UserDto(int Id, string Name, string Email, string Role);
+
+public record RateOrderRequest(int Stars, string? Comment);

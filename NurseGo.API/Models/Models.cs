@@ -71,6 +71,10 @@ public class Order
     public bool IsNightTime { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
+    // მომხმარებლის დასრულების დადასტურება
+    public string? ConfirmedService { get; set; }
+    public decimal? ConfirmedPrice { get; set; }
+    public DateTime? ConfirmedAt { get; set; }
 }
 
 public class Payment
@@ -158,6 +162,7 @@ public record CreateOrderRequest(int ServiceId, string Address, string District,
     double? Latitude = null, double? Longitude = null, int? PreferredNurseId = null);
 public record UpdateNurseStatusRequest(string Status);
 public record UpdateOrderStatusRequest(string Status);
+public record ConfirmReceiptRequest(string ServiceName, decimal PricePaid);
 public record SubmitRatingRequest(int OrderId, int NurseId, int Stars, string Comment);
 public record UpdateServicePriceRequest(decimal Price);
 public record AuthResponse(string Token, UserDto User);

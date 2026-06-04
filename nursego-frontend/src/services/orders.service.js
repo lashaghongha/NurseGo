@@ -30,4 +30,7 @@ export const ordersService = {
 
   getRating: (id) =>
     api.get(`/orders/${id}/rating`).then(r => r.data),
+
+  confirmReceipt: (id, serviceName, pricePaid) =>
+    api.post(`/orders/${id}/confirm-receipt`, { serviceName, pricePaid }).then(r => r.data),
 };

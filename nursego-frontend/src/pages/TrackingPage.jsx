@@ -62,7 +62,12 @@ export default function TrackingPage() {
   const [showChat, setShowChat]               = useState(false);
   const [chatMessages, setChatMessages]       = useState([]);
   const [chatInput, setChatInput]             = useState('');
-  const [geoCoords, setGeoCoords]             = useState(null); // geocoded address coords
+  const [geoCoords, setGeoCoords]             = useState(null);
+  const [showReceipt, setShowReceipt]         = useState(false);
+  const [receiptService, setReceiptService]   = useState('');
+  const [receiptPrice, setReceiptPrice]       = useState('');
+  const [receiptDone, setReceiptDone]         = useState(false);
+  const [submittingReceipt, setSubmittingReceipt] = useState(false);
   const chatEndRef = useRef(null);
   const pollRef = useRef(null);
 
@@ -135,8 +140,25 @@ export default function TrackingPage() {
     if (order?.status === 'Completed') {
       clearInterval(pollRef.current);
       if (!ratingSubmitted) setTimeout(() => setShowRating(true), 1500);
+      if (order.confirmedAt) setReceiptDone(true);
+      else { setReceiptService(order.service?.name || ''); setReceiptPrice(String(order.totalPrice || '')); }
     }
   }, [order?.status]);
+
+  const submitReceipt = async () => {
+    if (!receiptService.trim() || !receiptPrice) return;
+    setSubmittingReceipt(true);
+    try {
+      await ordersService.confirmReceipt(orderId, receiptService.trim(), parseFloat(receiptPrice));
+      setReceiptDone(true);
+      setShowReceipt(false);
+      toast.success('დადასტურება შენახულია! ✅');
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'შეცდომა');
+    } finally {
+      setSubmittingReceipt(false);
+    }
+  };
 
   const submitRating = async () => {
     try {
@@ -337,6 +359,66 @@ export default function TrackingPage() {
               )}
             </div>
           </div>
+
+          {/* ─── მომსახურების დადასტურება ─── */}
+          {order.status === 'Completed' && (
+            <div className="card" style={{ marginTop: 16, border: receiptDone ? '2px solid #22c55e' : '2px solid #f59e0b', borderRadius: 16, padding: 20 }}>
+              {receiptDone ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 28 }}>✅</span>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#15803d' }}>მომსახურება დადასტურებულია</div>
+                    <div style={{ fontSize: 13, color: 'var(--gray)' }}>მადლობა გამოხმაურებისთვის!</div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>📋 დაადასტურე მიღებული მომსახურება</div>
+                    <button onClick={() => setShowReceipt(o => !o)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--primary)', fontFamily: 'inherit' }}>
+                      {showReceipt ? '▲ დახურვა' : '▼ შევსება'}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--gray)', marginBottom: 8 }}>
+                    გთხოვთ შეავსო — გვეხმარება სერვისის გასაუმჯობესებლად
+                  </div>
+                  {showReceipt && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+                      <div>
+                        <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>რა მომსახურება მიიღე? *</label>
+                        <input
+                          type="text"
+                          value={receiptService}
+                          onChange={e => setReceiptService(e.target.value)}
+                          placeholder="მაგ: კუნთში ინექცია"
+                          style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>რა გადაიხადე? (₾) *</label>
+                        <input
+                          type="number"
+                          value={receiptPrice}
+                          onChange={e => setReceiptPrice(e.target.value)}
+                          placeholder="0"
+                          min={0}
+                          style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
+                        />
+                      </div>
+                      <button
+                        onClick={submitReceipt}
+                        disabled={!receiptService.trim() || !receiptPrice || submittingReceipt}
+                        className="btn btn-primary"
+                        style={{ justifyContent: 'center' }}>
+                        {submittingReceipt ? '⏳...' : '✅ დადასტურება'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           <div className="order-details card" style={{ marginTop:24 }}>
             <h3 style={{ marginBottom:16 }}>შეკვეთის დეტალები</h3>

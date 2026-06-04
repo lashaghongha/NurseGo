@@ -392,6 +392,24 @@ public class OrdersController : ControllerBase
         return Ok();
     }
 
+    // ─── POST /api/orders/{id}/confirm-receipt ───────────────────────────────
+    [HttpPost("{id}/confirm-receipt")]
+    [Authorize(Roles = "Customer")]
+    public async Task<IActionResult> ConfirmReceipt(int id, [FromBody] ConfirmReceiptRequest req)
+    {
+        var order = await _db.Orders.FindAsync(id);
+        if (order == null) return NotFound();
+        if (order.CustomerId != UserId) return Forbid();
+        if (order.Status != OrderStatus.Completed)
+            return BadRequest(new { message = "მხოლოდ დასრულებულ შეკვეთაზეა შესაძლებელი" });
+
+        order.ConfirmedService = req.ServiceName;
+        order.ConfirmedPrice   = req.PricePaid;
+        order.ConfirmedAt      = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "დადასტურება შენახულია!" });
+    }
+
     // ─── POST /api/orders/{id}/rate ──────────────────────────────────────────
     [HttpPost("{id}/rate")]
     [Authorize(Roles = "Customer")]

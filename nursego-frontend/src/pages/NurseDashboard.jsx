@@ -5,9 +5,40 @@ import { nursesService } from '../services/nurses.service';
 import { signalRService } from '../services/signalr.service';
 import { documentsService } from '../services/documents.service';
 import { pushService } from '../services/push.service';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import toast from 'react-hot-toast';
 import './NurseDashboard.css';
 import './LoginPage.css';
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+const pinIcon = L.divIcon({
+  className: '',
+  html: '<div style="font-size:30px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))">📍</div>',
+  iconSize: [30, 30], iconAnchor: [15, 30],
+});
+
+function OrderMap({ lat, lng, height = 200 }) {
+  if (!lat || !lng) return null;
+  return (
+    <div style={{ borderRadius: 12, overflow: 'hidden', border: '2px solid #e2e8f0', marginTop: 10 }}>
+      <MapContainer center={[lat, lng]} zoom={16}
+        style={{ width: '100%', height }}
+        scrollWheelZoom={false} dragging={true} zoomControl={true}>
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='© <a href="https://openstreetmap.org">OSM</a>' />
+        <Marker position={[lat, lng]} icon={pinIcon} />
+      </MapContainer>
+    </div>
+  );
+}
 
 const STATUS_FLOW = [
   { status: 'Assigned',   label: 'მიღება',      next: 'EnRoute' },
@@ -388,6 +419,7 @@ export default function NurseDashboard() {
                 <div><strong>მომსახურება:</strong> {activeOrder.service?.icon} {activeOrder.service?.name}</div>
                 <div><strong>მისამართი:</strong> 📍 {activeOrder.district}, {activeOrder.address}</div>
                 {activeOrder.notes && <div className="ao-note">💬 {activeOrder.notes}</div>}
+                <OrderMap lat={activeOrder.latitude} lng={activeOrder.longitude} height={180} />
               </div>
               <div className="order-progress">
                 {STATUS_FLOW.map((s, i) => (
@@ -502,6 +534,7 @@ export default function NurseDashboard() {
               <div className="om-section">
                 <div className="om-row"><span>👤 კლიენტი</span><strong>{previewOrder.customer?.name}</strong></div>
                 <div className="om-row"><span>📍 მისამართი</span><strong>{previewOrder.district}, {previewOrder.address}</strong></div>
+                <OrderMap lat={previewOrder.latitude} lng={previewOrder.longitude} height={200} />
                 <div className="om-row"><span>💰 ანაზღაურება</span><strong style={{ color: 'var(--secondary)', fontSize: 18 }}>{Math.round((previewOrder.totalPrice || 0) * 0.8)}₾ <span style={{ fontSize: 12, color: 'var(--gray)' }}>(80%)</span></strong></div>
                 <div className="om-row"><span>⏱ სავარაუდო ხანგრძლივობა</span><strong>{details.duration}</strong></div>
                 {previewOrder.isNightTime && <div className="om-row"><span>🌙 ღამის ტარიფი</span><strong style={{ color: 'var(--warning)' }}>+{previewOrder.nightSurcharge}₾</strong></div>}

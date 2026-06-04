@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { authService } from '../services/auth.service';
+import NurseAgreement from '../components/NurseAgreement';
 import toast from 'react-hot-toast';
-// forgot password state
 import './LoginPage.css';
 
 export default function LoginPage() {
@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [license, setLicense] = useState('');
   const [districts, setDistricts] = useState([]);
   const [experience, setExperience] = useState(1);
+  const [agreedTerms, setAgreedTerms] = useState(false);
 
   const ALL_DISTRICTS = ['ვაკე','საბურთალო','გლდანი','დიდუბე','ნაძალადევი','ისანი','სამგორი','კრწანისი','დიღომი','ვარკეთილი'];
   const ALL_SERVICES = [
@@ -76,6 +77,11 @@ export default function LoginPage() {
           }
           if (selectedServices.length === 0) {
             toast.error('მინიმუმ ერთი მომსახურება უნდა აირჩიო');
+            setLoading(false);
+            return;
+          }
+          if (!agreedTerms) {
+            toast.error('სამომსახურო ხელშეკრულება უნდა დაეთანხმო');
             setLoading(false);
             return;
           }
@@ -267,7 +273,13 @@ export default function LoginPage() {
             </>
           )}
 
-          <button type="submit" className={`btn btn-primary login-btn ${loading ? 'loading' : ''}`} disabled={loading}>
+          {isRegister && role === 'nurse' && (
+            <NurseAgreement agreed={agreedTerms} onChange={setAgreedTerms} />
+          )}
+
+          <button type="submit"
+            className={`btn btn-primary login-btn ${loading ? 'loading' : ''}`}
+            disabled={loading || (isRegister && role === 'nurse' && !agreedTerms)}>
             {loading ? '⏳ ...' : isRegister ? '✅ რეგისტრაცია' : '→ შესვლა'}
           </button>
         </form>

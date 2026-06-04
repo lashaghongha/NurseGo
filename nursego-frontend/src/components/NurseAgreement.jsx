@@ -89,7 +89,7 @@ export default function NurseAgreement({ agreed, onChange }) {
           </p>
 
           <p style={{ marginTop: 12, color: '#64748b', fontSize: 12 }}>
-            ბოლო განახლება: 2025 წლის ივნისი · MyNurse Georgia
+            ბოლო განახლება: 2026 წლის ივნისი · MyNurse Georgia
           </p>
         </div>
       )}

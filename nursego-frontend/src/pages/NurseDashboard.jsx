@@ -6,6 +6,7 @@ import { signalRService } from '../services/signalr.service';
 import { documentsService } from '../services/documents.service';
 import { pushService } from '../services/push.service';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import OrderChat from '../components/OrderChat';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import toast from 'react-hot-toast';
@@ -420,6 +421,7 @@ export default function NurseDashboard() {
                 <div><strong>მისამართი:</strong> 📍 {activeOrder.district}, {activeOrder.address}</div>
                 {activeOrder.notes && <div className="ao-note">💬 {activeOrder.notes}</div>}
                 <OrderMap lat={activeOrder.latitude} lng={activeOrder.longitude} height={180} />
+                <OrderChat orderId={activeOrder.id} />
               </div>
               <div className="order-progress">
                 {STATUS_FLOW.map((s, i) => (

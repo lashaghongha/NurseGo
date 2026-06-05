@@ -32,7 +32,7 @@ const STATUS_MAP = {
   Busy:     { label: '🟡 დაკავებული', cls: 'badge-busy' },
   Vacation: { label: '🔴 შვებულება',  cls: 'badge-vacation' },
   Offline:  { label: '⚫ ოფლაინ',     cls: 'badge-offline' },
-  Pending:  { label: '🕐 ვერიფიკაცია მიმდინარეობს', cls: 'badge-offline' },
+  Pending:  { label: '⚫ მოლოდინი',   cls: 'badge-offline' },
 };
 
 const DISTRICTS = ['ყველა','ვაკე','საბურთალო','გლდანი','დიდუბე','ნაძალადევი','ისანი','სამგორი','კრწანისი'];
@@ -152,11 +152,6 @@ export default function NursesPage() {
                 {selectedNurse.services?.split(',').map(s => <span key={s} className="nc-service-tag">{s.trim()}</span>)}
               </div>
             </div>
-            {selectedNurse.status === 'Pending' && (
-              <div style={{ background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#92400e', textAlign: 'center' }}>
-                🕐 ექთნის ვერიფიკაცია მიმდინარეობს — მალე ხელმისაწვდომი იქნება
-              </div>
-            )}
             {selectedNurse.status === 'Active' && (
               <Link to="/order" state={{ nurseId: selectedNurse.id, nurseName: selectedNurse.name }}
                 className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>

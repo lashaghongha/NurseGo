@@ -26,7 +26,7 @@ public class NursesController : ControllerBase
         if (!string.IsNullOrEmpty(status) && Enum.TryParse<NurseStatus>(status, true, out var s))
             query = query.Where(n => n.Status == s);
         else
-            query = query.Where(n => n.Status == NurseStatus.Active || n.Status == NurseStatus.Busy);
+            query = query.Where(n => n.Status == NurseStatus.Active || n.Status == NurseStatus.Busy || n.Status == NurseStatus.Pending);
 
         query = query.OrderByDescending(n => n.IsPremium).ThenByDescending(n => n.Rating);
 

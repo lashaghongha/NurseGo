@@ -164,45 +164,4 @@ public class AdminController : ControllerBase
         return Ok(data);
     }
 
-    // დროებითი cleanup endpoint — ტესტ მონაცემების წაშლა
-    [HttpDelete("cleanup-test-data")]
-    [AllowAnonymous]
-    public async Task<IActionResult> CleanupTestData([FromQuery] string secret)
-    {
-        if (secret != "cleanup2026nursego") return Unauthorized();
-
-        var testEmails = await _db.Users
-            .Where(u => u.Email.EndsWith("@test.ge"))
-            .Select(u => u.Id)
-            .ToListAsync();
-
-        var testOrderIds = await _db.Orders
-            .Where(o => testEmails.Contains(o.CustomerId))
-            .Select(o => o.Id)
-            .ToListAsync();
-
-        // ratings
-        var ratings = _db.Ratings.Where(r => testOrderIds.Contains(r.OrderId));
-        _db.Ratings.RemoveRange(ratings);
-
-        // chat messages
-        var chats = _db.ChatMessages.Where(c => testOrderIds.Contains(c.OrderId));
-        _db.ChatMessages.RemoveRange(chats);
-
-        // orders
-        var orders = _db.Orders.Where(o => testEmails.Contains(o.CustomerId));
-        _db.Orders.RemoveRange(orders);
-
-        // test nurses (LIC178... ან LIC999)
-        var testNurses = _db.Nurses.Where(n => n.LicenseNumber.StartsWith("LIC178") || n.LicenseNumber == "LIC999" || n.LicenseNumber == "LICTEST");
-        _db.Nurses.RemoveRange(testNurses);
-
-        // test users
-        var testUsers = _db.Users.Where(u => u.Email.EndsWith("@test.ge"));
-        _db.Users.RemoveRange(testUsers);
-
-        await _db.SaveChangesAsync();
-
-        return Ok(new { message = "Test data cleaned up", deletedUsers = testEmails.Count });
-    }
 }

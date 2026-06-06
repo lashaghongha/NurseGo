@@ -56,6 +56,10 @@ export default function HomePage() {
         <div className="hero-bg" />
         <div className="container hero-content">
           <div className="hero-text fade-in">
+            <div className="hero-logo-wrap">
+              <img src="/citymed-logo.jpg" alt="Citymed" className="hero-logo-img" />
+              <div className="hero-logo-name">Citymed</div>
+            </div>
             <div className="hero-badge">🇬🇪 საქართველოში პირველი</div>
             <h1 className="hero-title">
               გამოიძახე ექთანი<br />
@@ -136,10 +140,6 @@ export default function HomePage() {
             </div>
           </div>
           <div className="hero-visual fade-in">
-            <div className="hero-logo-wrap">
-              <img src="/citymed-logo.jpg" alt="Citymed" className="hero-logo-img" />
-              <div className="hero-logo-name">Citymed</div>
-            </div>
             <div className="hero-card">
               <div className="hcard-header">
                 <div className="hcard-avatar">👩‍⚕️</div>

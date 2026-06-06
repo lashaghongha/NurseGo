@@ -170,6 +170,7 @@ export default function ProfilePage() {
   const completedCount = orders.filter(o => o.status === 'Completed').length;
 
   return (
+    <>
     <div className="profile-page">
       <div className="container">
         <div className="profile-wrapper">
@@ -623,5 +624,6 @@ export default function ProfilePage() {
         </div>
       </div>
     )}
+    </>
   );
 }

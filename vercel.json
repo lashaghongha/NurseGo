@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd nursego-frontend && npm install && npm run build",
+  "outputDirectory": "nursego-frontend/build",
+  "installCommand": "echo skip"
+}

@@ -79,8 +79,8 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="container navbar-inner">
         <Link to="/" className="navbar-brand">
-          <span className="brand-icon">🏥</span>
-          <span className="brand-name">MyNurse</span>
+          <img src="/citymed-logo.jpg" alt="Citymed" className="brand-logo" />
+          <span className="brand-name">Citymed</span>
         </Link>
 
         <div className={`navbar-links ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(false)}>

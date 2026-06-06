@@ -1,5 +1,29 @@
 .home-page { overflow-x: hidden; }
 
+/* Citymed logo on hero */
+.hero-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 10px;
+}
+.hero-logo-img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(14,165,233,0.18);
+  background: white;
+  padding: 8px;
+}
+.hero-logo-name {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--primary);
+  letter-spacing: -1px;
+}
+
 /* Hero */
 .hero {
   position: relative;

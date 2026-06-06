@@ -136,6 +136,10 @@ export default function HomePage() {
             </div>
           </div>
           <div className="hero-visual fade-in">
+            <div className="hero-logo-wrap">
+              <img src="/citymed-logo.jpg" alt="Citymed" className="hero-logo-img" />
+              <div className="hero-logo-name">Citymed</div>
+            </div>
             <div className="hero-card">
               <div className="hcard-header">
                 <div className="hcard-avatar">👩‍⚕️</div>
@@ -256,7 +260,10 @@ export default function HomePage() {
       <footer className="footer">
         <div className="container footer-inner">
           <div className="footer-brand">
-            <span>🏥 MyNurse</span>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <img src="/citymed-logo.jpg" alt="Citymed" style={{height:32,width:32,objectFit:'contain',borderRadius:6}} />
+              <span style={{fontWeight:800,fontSize:18}}>Citymed</span>
+            </div>
             <p>სახლში სამედიცინო მომსახურება</p>
           </div>
           <div className="footer-links">
@@ -264,7 +271,7 @@ export default function HomePage() {
             <Link to="/nurses">ექთნები</Link>
             <Link to="/login">შესვლა</Link>
           </div>
-          <div className="footer-copy">© 2025 MyNurse Georgia</div>
+          <div className="footer-copy">© 2025 Citymed Georgia</div>
         </div>
       </footer>
     </div>

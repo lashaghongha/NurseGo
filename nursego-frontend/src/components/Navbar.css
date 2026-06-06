@@ -20,6 +20,7 @@
   gap: 10px;
   text-decoration: none;
 }
+.brand-logo { height: 40px; width: 40px; object-fit: contain; border-radius: 6px; }
 .brand-icon { font-size: 28px; }
 .brand-name {
   font-size: 22px;

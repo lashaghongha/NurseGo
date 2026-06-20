@@ -95,16 +95,43 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
 
-    // SQLite-ში ახალი სვეტები (PostgreSQL-ში EnsureCreated მოიცავს მათ)
-    if (db.Database.IsSqlite())
-    {
-        var columnMigrations = new[]
+    // ახალი სვეტები — SQLite და PostgreSQL ორივე. IF NOT EXISTS გარანტიას იძლევა
+    // რომ განმეორებითი გაშვება შეცდომის გარეშე გაივლის.
+    var columnMigrations = db.Database.IsNpgsql()
+        ? new[]
         {
+            // Nurses table
+            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"PhotoUrl\" TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"Districts\" TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"IsPremium\" BOOLEAN NOT NULL DEFAULT FALSE",
+            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"MonthlyFee\" NUMERIC NOT NULL DEFAULT 0",
+            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"Latitude\" DOUBLE PRECISION NOT NULL DEFAULT 0",
+            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"Longitude\" DOUBLE PRECISION NOT NULL DEFAULT 0",
+            // Orders table
+            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedService\" TEXT",
+            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedPrice\" NUMERIC",
+            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedAt\" TIMESTAMP WITH TIME ZONE",
+            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"Latitude\" DOUBLE PRECISION",
+            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"Longitude\" DOUBLE PRECISION",
+        }
+        : new[]
+        {
+            // SQLite — IF NOT EXISTS unsupported, wrapped in try/catch below
             "ALTER TABLE Nurses ADD COLUMN PhotoUrl TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE Nurses ADD COLUMN Districts TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE Nurses ADD COLUMN IsPremium INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE Nurses ADD COLUMN MonthlyFee REAL NOT NULL DEFAULT 0",
+            "ALTER TABLE Nurses ADD COLUMN Latitude REAL NOT NULL DEFAULT 0",
+            "ALTER TABLE Nurses ADD COLUMN Longitude REAL NOT NULL DEFAULT 0",
+            "ALTER TABLE Orders ADD COLUMN ConfirmedService TEXT",
+            "ALTER TABLE Orders ADD COLUMN ConfirmedPrice REAL",
+            "ALTER TABLE Orders ADD COLUMN ConfirmedAt TEXT",
+            "ALTER TABLE Orders ADD COLUMN Latitude REAL",
+            "ALTER TABLE Orders ADD COLUMN Longitude REAL",
         };
-        foreach (var sql in columnMigrations)
-            try { db.Database.ExecuteSqlRaw(sql); } catch { }
-    }
+
+    foreach (var sql in columnMigrations)
+        try { db.Database.ExecuteSqlRaw(sql); } catch { }
 }
 
 if (app.Environment.IsDevelopment())

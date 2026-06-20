@@ -36,8 +36,9 @@ public class AuthController : ControllerBase
         if (await _db.Users.AnyAsync(u => u.Email == req.Email))
             return BadRequest(new { message = "ეს მეილი უკვე რეგისტრირებულია" });
 
-        if (!Enum.TryParse<UserRole>(req.Role, true, out var role))
-            role = UserRole.Customer;
+        // SECURITY: Always force Customer role on self-registration.
+        // Admin role can only be assigned directly in the database.
+        var role = UserRole.Customer;
 
         var user = new User
         {

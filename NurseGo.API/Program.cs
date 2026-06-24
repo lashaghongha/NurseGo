@@ -95,10 +95,14 @@ builder.Services.AddSwaggerGen(c => {
     }});
 });
 
-// ─── CORS: local + Vercel ─────────────────────────────────────────────────────
-var allowedOrigins = new List<string> { "http://localhost:3000" };
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+var allowedOrigins = new List<string>
+{
+    "http://localhost:3000",
+    "https://nursego.vercel.app",
+};
 var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
-if (!string.IsNullOrEmpty(frontendUrl))
+if (!string.IsNullOrEmpty(frontendUrl) && !allowedOrigins.Contains(frontendUrl))
     allowedOrigins.Add(frontendUrl);
 
 builder.Services.AddCors(opt => opt.AddPolicy("AllowFrontend", p =>

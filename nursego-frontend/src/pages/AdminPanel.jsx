@@ -470,8 +470,8 @@ export default function AdminPanel() {
 
         {/* NURSE EDIT MODAL */}
         {editingNurse && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-            <div className="card" style={{ width: '100%', maxWidth: 580, padding: 32, maxHeight: '92vh', overflowY: 'auto' }}>
+          <div className="admin-modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div className="card admin-modal" style={{ width: '100%', maxWidth: 580, padding: 28, maxHeight: '92vh', overflowY: 'auto' }}>
               <h2 style={{ marginBottom: 20 }}>✏️ ექთნის რედაქტირება — {nurseForm.name}</h2>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -569,34 +569,34 @@ export default function AdminPanel() {
             <h1 className="page-title">ექთნების მართვა</h1>
             <div className="admin-table-wrap">
               <table className="admin-table">
-                <thead><tr><th>ექთანი</th><th>სტატუსი</th><th>უბანი</th><th>შეკვ.</th><th>შემოსავ.</th><th>რეიტ.</th><th>მოქმ.</th></tr></thead>
+                <thead><tr><th>ექთანი</th><th>სტატუსი</th><th className="col-hide-mobile">უბანი</th><th className="col-hide-mobile">შეკვ.</th><th className="col-hide-mobile">შემოსავ.</th><th className="col-hide-mobile">რეიტ.</th><th>მოქმ.</th></tr></thead>
                 <tbody>
                   {nurses.map(n => (
                     <tr key={n.id}>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ fontSize: 22 }}>👩‍⚕️</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 20 }}>👩‍⚕️</span>
                           <div>
-                            <div style={{ fontWeight: 600 }}>{n.user?.name}</div>
-                            {!n.isVerified && <span style={{ fontSize: 11, color: 'var(--warning)', fontWeight: 700 }}>⚠️ ვერიფიკაცია</span>}
-                            {n.isPremium && <span style={{ fontSize: 11, color: '#7c3aed', fontWeight: 700 }}> ⭐ Premium</span>}
+                            <div style={{ fontWeight: 600, fontSize: 13 }}>{n.user?.name}</div>
+                            {!n.isVerified && <span style={{ fontSize: 10, color: 'var(--warning)', fontWeight: 700 }}>⚠️ ვერიფ.</span>}
+                            {n.isPremium && <span style={{ fontSize: 10, color: '#7c3aed', fontWeight: 700 }}> ⭐</span>}
                           </div>
                         </div>
                       </td>
-                      <td><span className={`badge ${NURSE_STATUS[n.status]?.cls || 'badge-offline'}`}>{NURSE_STATUS[n.status]?.label || n.status}</span></td>
-                      <td>{n.district}</td>
-                      <td>{n.totalOrders}</td>
-                      <td style={{ fontWeight: 700, color: 'var(--secondary)' }}>{n.realEarnings ?? '—'}₾</td>
-                      <td>{n.rating ? `⭐ ${n.rating.toFixed(1)}` : '—'}</td>
+                      <td><span className={`badge ${NURSE_STATUS[n.status]?.cls || 'badge-offline'}`} style={{ fontSize: 11 }}>{NURSE_STATUS[n.status]?.label || n.status}</span></td>
+                      <td className="col-hide-mobile">{n.district}</td>
+                      <td className="col-hide-mobile">{n.totalOrders}</td>
+                      <td className="col-hide-mobile" style={{ fontWeight: 700, color: 'var(--secondary)' }}>{n.realEarnings ?? '—'}₾</td>
+                      <td className="col-hide-mobile">{n.rating ? `⭐ ${n.rating.toFixed(1)}` : '—'}</td>
                       <td>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          <button className="btn btn-outline btn-sm" onClick={() => openNurseEdit(n)}>✏️ რედ.</button>
-                          {!n.isVerified && <button className="btn btn-secondary btn-sm" onClick={() => verifyNurse(n.id)}>✅ დადასტ.</button>}
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          <button className="btn btn-outline btn-sm" onClick={() => openNurseEdit(n)}>✏️</button>
+                          {!n.isVerified && <button className="btn btn-secondary btn-sm" onClick={() => verifyNurse(n.id)}>✅</button>}
                           {n.status !== 'Blocked' && n.isVerified && (
-                            <button className="btn btn-danger btn-sm" onClick={() => blockNurse(n.id)}>🚫 დაბლ.</button>
+                            <button className="btn btn-danger btn-sm" onClick={() => blockNurse(n.id)}>🚫</button>
                           )}
                           {n.status === 'Blocked' && (
-                            <button className="btn btn-sm" style={{ background: '#dcfce7', color: '#15803d', border: 'none' }} onClick={() => unblockNurse(n.id)}>🔓 განბლ.</button>
+                            <button className="btn btn-sm" style={{ background: '#dcfce7', color: '#15803d', border: 'none' }} onClick={() => unblockNurse(n.id)}>🔓</button>
                           )}
                           <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }} onClick={() => deleteNurse(n.id, n.user?.name || n.name)}>🗑️</button>
                         </div>
@@ -615,21 +615,24 @@ export default function AdminPanel() {
             <h1 className="page-title">შეკვეთების მართვა</h1>
             <div className="admin-table-wrap">
               <table className="admin-table">
-                <thead><tr><th>#</th><th>კლიენტი</th><th>მომსახ.</th><th>ექთანი</th><th>სტატუსი</th><th>ფასი</th><th>თარიღი</th></tr></thead>
+                <thead><tr><th className="col-hide-mobile">#</th><th>კლიენტი</th><th className="col-hide-mobile">მომსახ.</th><th className="col-hide-mobile">ექთანი</th><th>სტატუსი</th><th>ფასი</th><th className="col-hide-mobile">თარიღი</th></tr></thead>
                 <tbody>
                   {orders.map(o => (
                     <tr key={o.id}>
-                      <td style={{ color: 'var(--gray)', fontSize: 13 }}>#{o.id}</td>
-                      <td style={{ fontWeight: 600 }}>{o.customer?.name}</td>
-                      <td>{o.service?.name}</td>
-                      <td>{o.nurse?.user?.name || '—'}</td>
+                      <td className="col-hide-mobile" style={{ color: 'var(--gray)', fontSize: 13 }}>#{o.id}</td>
+                      <td style={{ fontWeight: 600, fontSize: 13 }}>
+                        {o.customer?.name}
+                        <div className="col-show-mobile" style={{ fontSize: 11, color: 'var(--gray)', fontWeight: 400 }}>{o.service?.name}</div>
+                      </td>
+                      <td className="col-hide-mobile">{o.service?.name}</td>
+                      <td className="col-hide-mobile">{o.nurse?.user?.name || '—'}</td>
                       <td>
-                        <span style={{ background: STATUS_COLORS[o.status]?.bg, color: STATUS_COLORS[o.status]?.color, padding: '3px 10px', borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
+                        <span style={{ background: STATUS_COLORS[o.status]?.bg, color: STATUS_COLORS[o.status]?.color, padding: '3px 8px', borderRadius: 10, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
                           {STATUS_COLORS[o.status]?.label || o.status}
                         </span>
                       </td>
-                      <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{o.totalPrice}₾</td>
-                      <td style={{ fontSize: 12, color: 'var(--gray)' }}>{new Date(o.createdAt).toLocaleDateString('ka-GE')}</td>
+                      <td style={{ fontWeight: 700, color: 'var(--primary)', whiteSpace: 'nowrap' }}>{o.totalPrice}₾</td>
+                      <td className="col-hide-mobile" style={{ fontSize: 12, color: 'var(--gray)' }}>{new Date(o.createdAt).toLocaleDateString('ka-GE')}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -648,8 +651,8 @@ export default function AdminPanel() {
 
             {/* Modal */}
             {editingService !== null && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div className="card" style={{ width: '100%', maxWidth: 520, padding: 32, maxHeight: '90vh', overflowY: 'auto' }}>
+              <div className="admin-modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="card admin-modal" style={{ width: '100%', maxWidth: 520, padding: 28, maxHeight: '90vh', overflowY: 'auto' }}>
                   <h2 style={{ marginBottom: 20 }}>{editingService === 'new' ? '➕ ახალი მომსახურება' : '✏️ მომსახურების რედაქტირება'}</h2>
 
                   <div className="form-group">

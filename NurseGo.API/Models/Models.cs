@@ -166,11 +166,19 @@ public record ConfirmReceiptRequest(string ServiceName, decimal PricePaid);
 public record SubmitRatingRequest(int OrderId, int NurseId, int Stars, string Comment);
 public record UpdateServicePriceRequest(decimal Price);
 public record ServiceUpsertRequest(string Name, string Icon, decimal Price, string Category, string DurationEstimate, bool IsActive = true);
-public record AdminUpdateNurseRequest(
-    string? Name, string? Email, string? Phone,
-    string? NewPassword,
-    string? LicenseNumber, string? Districts, string? Services,
-    int? ExperienceYears, string? Status, bool? IsVerified);
+public class AdminUpdateNurseRequest
+{
+    public string? Name { get; set; }
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+    public string? NewPassword { get; set; }
+    public string? LicenseNumber { get; set; }
+    public string? Districts { get; set; }
+    public string? Services { get; set; }
+    public int? ExperienceYears { get; set; }
+    public string? Status { get; set; }
+    public bool? IsVerified { get; set; }
+}
 public record AuthResponse(string Token, UserDto User);
 public record UserDto(int Id, string Name, string Email, string Role);
 

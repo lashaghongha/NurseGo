@@ -181,10 +181,29 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// CORS პირველი — ყველა response-ზე header-ები
+// ─── Raw CORS — ყველა response-ზე, მათ შორის 500-ზე ───────────────────────
+app.Use(async (context, next) =>
+{
+    var origin = context.Request.Headers["Origin"].FirstOrDefault();
+    if (!string.IsNullOrEmpty(origin))
+    {
+        context.Response.Headers["Access-Control-Allow-Origin"]      = origin;
+        context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+        context.Response.Headers["Access-Control-Allow-Methods"]     = "GET,POST,PUT,DELETE,OPTIONS,PATCH";
+        context.Response.Headers["Access-Control-Allow-Headers"]     = "Content-Type,Authorization,X-Requested-With";
+        context.Response.Headers["Access-Control-Max-Age"]           = "86400";
+    }
+    if (context.Request.Method == "OPTIONS")
+    {
+        context.Response.StatusCode = 204;
+        return;
+    }
+    await next();
+});
+
 app.UseCors("AllowFrontend");
 
-// გლობალური exception handler — 500-ზეც CORS header-ები შენარჩუნდება
+// გლობალური exception handler
 app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
 {
     ctx.Response.StatusCode  = 500;

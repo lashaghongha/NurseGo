@@ -96,17 +96,8 @@ builder.Services.AddSwaggerGen(c => {
 });
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-var allowedOrigins = new List<string>
-{
-    "http://localhost:3000",
-    "https://nursego.vercel.app",
-};
-var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
-if (!string.IsNullOrEmpty(frontendUrl) && !allowedOrigins.Contains(frontendUrl))
-    allowedOrigins.Add(frontendUrl);
-
 builder.Services.AddCors(opt => opt.AddPolicy("AllowFrontend", p =>
-    p.WithOrigins(allowedOrigins.ToArray())
+    p.SetIsOriginAllowed(_ => true)
      .AllowAnyMethod()
      .AllowAnyHeader()
      .AllowCredentials()));

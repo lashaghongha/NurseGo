@@ -762,32 +762,71 @@ export default function AdminPanel() {
         {/* RATINGS */}
         {activeTab === 'ratings' && (
           <div className="fade-in">
-            <h1 className="page-title">შეფასებები</h1>
-            <div className="admin-table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr><th>ექთანი</th><th>კლიენტი</th><th>ვარსკვლავები</th><th>კომენტარი</th><th>შეკვ.#</th><th>თარიღი</th></tr>
-                </thead>
-                <tbody>
-                  {ratings.length === 0 ? (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--gray)', padding: 32 }}>შეფასება ჯერ არ არის</td></tr>
-                  ) : ratings.map(r => (
-                    <tr key={r.id}>
-                      <td style={{ fontWeight: 600 }}>👩‍⚕️ {r.nurseName}</td>
-                      <td>{r.customerName}</td>
-                      <td>
-                        <span style={{ color: '#f59e0b', fontSize: 16 }}>{'★'.repeat(r.stars)}</span>
-                        <span style={{ color: '#e2e8f0' }}>{'★'.repeat(5 - r.stars)}</span>
-                        <span style={{ fontSize: 12, color: 'var(--gray)', marginLeft: 6 }}>{r.stars}/5</span>
-                      </td>
-                      <td style={{ fontSize: 13, color: 'var(--gray)', maxWidth: 200 }}>{r.comment || '—'}</td>
-                      <td style={{ color: 'var(--gray)', fontSize: 13 }}>#{r.orderId}</td>
-                      <td style={{ fontSize: 12, color: 'var(--gray)' }}>{new Date(r.createdAt).toLocaleDateString('ka-GE')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <h1 className="page-title">⭐ შეფასებები</h1>
+
+            {ratings.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: 48, color: 'var(--gray)' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>⭐</div>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>შეფასება ჯერ არ არის</div>
+              </div>
+            ) : (() => {
+              // Group by nurse
+              const byNurse = {};
+              ratings.forEach(r => {
+                if (!byNurse[r.nurseName]) byNurse[r.nurseName] = [];
+                byNurse[r.nurseName].push(r);
+              });
+
+              return Object.entries(byNurse).map(([nurseName, nurseRatings]) => {
+                const avg = (nurseRatings.reduce((s, r) => s + r.stars, 0) / nurseRatings.length).toFixed(1);
+                return (
+                  <div key={nurseName} className="card" style={{ marginBottom: 20 }}>
+                    {/* Nurse header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
+                      <span style={{ fontSize: 36 }}>👩‍⚕️</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 800, fontSize: 17 }}>{nurseName}</div>
+                        <div style={{ fontSize: 13, color: 'var(--gray)', marginTop: 2 }}>
+                          {nurseRatings.length} შეფასება
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 28, fontWeight: 900, color: '#f59e0b' }}>{avg}</div>
+                        <div style={{ color: '#f59e0b', fontSize: 16, lineHeight: 1 }}>
+                          {'★'.repeat(Math.round(Number(avg)))}
+                          <span style={{ color: '#e2e8f0' }}>{'★'.repeat(5 - Math.round(Number(avg)))}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--gray)' }}>საშუალო</div>
+                      </div>
+                    </div>
+
+                    {/* Individual ratings */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {nurseRatings.map(r => (
+                        <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 12px', background: '#f8fafc', borderRadius: 10 }}>
+                          <div style={{ minWidth: 36, height: 36, borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
+                            {r.customerName?.[0] || '?'}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 600, fontSize: 14 }}>{r.customerName}</span>
+                              <span style={{ color: '#f59e0b', fontSize: 15 }}>{'★'.repeat(r.stars)}<span style={{ color: '#e2e8f0' }}>{'★'.repeat(5 - r.stars)}</span></span>
+                              <span style={{ fontSize: 12, color: 'var(--gray)' }}>{r.stars}/5</span>
+                              <span style={{ fontSize: 11, color: 'var(--gray)', marginLeft: 'auto' }}>#{r.orderId} · {new Date(r.createdAt).toLocaleDateString('ka-GE')}</span>
+                            </div>
+                            {r.comment && (
+                              <div style={{ fontSize: 13, color: '#64748b', marginTop: 4, fontStyle: 'italic' }}>
+                                "{r.comment}"
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         )}
 

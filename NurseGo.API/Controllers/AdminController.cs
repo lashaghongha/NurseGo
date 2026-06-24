@@ -147,19 +147,28 @@ public class AdminController : ControllerBase
     [HttpGet("users")]
     public async Task<IActionResult> GetAllUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        var users = await _db.Users
+        var rawUsers = await _db.Users
             .Where(u => u.Role == UserRole.Customer)
             .OrderByDescending(u => u.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(u => new
-            {
-                u.Id, u.Name, u.Email, u.Phone,
-                role = u.Role.ToString(),
-                u.CreatedAt,
-                totalOrders = _db.Orders.Count(o => o.CustomerId == u.Id),
-            })
             .ToListAsync();
+
+        var userIds = rawUsers.Select(u => u.Id).ToList();
+        var orderCounts = await _db.Orders
+            .Where(o => userIds.Contains(o.CustomerId))
+            .GroupBy(o => o.CustomerId)
+            .Select(g => new { CustomerId = g.Key, Count = g.Count() })
+            .ToListAsync();
+        var countMap = orderCounts.ToDictionary(x => x.CustomerId, x => x.Count);
+
+        var users = rawUsers.Select(u => new
+        {
+            u.Id, u.Name, u.Email, u.Phone,
+            role = u.Role.ToString(),
+            u.CreatedAt,
+            totalOrders = countMap.TryGetValue(u.Id, out var c) ? c : 0,
+        });
 
         var total = await _db.Users.CountAsync(u => u.Role == UserRole.Customer);
         return Ok(new { users, total });

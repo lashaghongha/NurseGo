@@ -89,9 +89,10 @@ builder.Services.AddCors(opt => opt.AddPolicy("AllowFrontend", p =>
 
 var app = builder.Build();
 
-// ─── DB: EnsureCreated + column migrations ───────────────────────────────────
-using (var scope = app.Services.CreateScope())
+// ─── DB: EnsureCreated + column migrations (non-fatal — app still starts if DB unreachable) ─
+try
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
 
@@ -132,6 +133,13 @@ using (var scope = app.Services.CreateScope())
 
     foreach (var sql in columnMigrations)
         try { db.Database.ExecuteSqlRaw(sql); } catch { }
+}
+catch (Exception ex)
+{
+    // DB initialization failed (e.g., PostgreSQL not reachable yet).
+    // Log and continue — the app will still start and serve /health.
+    // Requests that need the DB will fail with 500 until DB is available.
+    Console.Error.WriteLine($"[WARN] DB initialization failed at startup: {ex.Message}");
 }
 
 if (app.Environment.IsDevelopment())

@@ -201,6 +201,7 @@ public class OrdersController : ControllerBase
             .Include(o => o.Service)
             .FirstOrDefaultAsync(o => o.Id == id && o.Status == OrderStatus.Pending && o.NurseId == null);
 
+
         if (order == null)
             return BadRequest(new { message = "შეკვეთა უკვე მიღებულია სხვა ექთნის მიერ" });
 
@@ -213,8 +214,12 @@ public class OrdersController : ControllerBase
         await _hub.Clients.Group($"order-{id}")
             .SendAsync("StatusChanged", "Assigned");
 
-        // Push — კლიენტს შეტყობინება
+        // Push + Email — კლიენტს შეტყობინება
         _ = _push.SendToUser(order.CustomerId, "NurseGo 👩‍⚕️", "ექთანი მიღებულია — გამოდის თქვენსკენ!", $"/tracking/{id}");
+        var cust = await _db.Users.FindAsync(order.CustomerId);
+        if (cust != null)
+            _ = Task.Run(() => _email.SendOrderConfirmation(
+                cust.Email, cust.Name, id, order.Service?.Name ?? "მომსახურება", order.TotalPrice));
 
         // სხვა ექთნებს ვეუბნებით — შეკვეთა დახურულია
         await _hub.Clients.All

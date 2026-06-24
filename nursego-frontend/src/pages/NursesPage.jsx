@@ -52,7 +52,8 @@ export default function NursesPage() {
   }, []);
 
   const filtered = nurses.filter(n => {
-    const matchDistrict = districtFilter === 'ყველა' || n.district === districtFilter;
+    const allDistricts = [n.district, ...(n.districts || '').split(',').map(d => d.trim())].filter(Boolean);
+    const matchDistrict = districtFilter === 'ყველა' || allDistricts.includes(districtFilter);
     const matchSearch = n.name?.toLowerCase().includes(search.toLowerCase());
     return matchDistrict && matchSearch;
   });

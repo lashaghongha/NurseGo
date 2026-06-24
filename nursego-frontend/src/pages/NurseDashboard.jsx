@@ -140,13 +140,22 @@ export default function NurseDashboard() {
 
             if (navigator.geolocation) {
               const sendLocation = (nId) => {
-                navigator.geolocation.getCurrentPosition(pos => {
-                  nursesService.updateLocation(nId, pos.coords.latitude, pos.coords.longitude).catch(() => {});
-                }, () => {});
+                navigator.geolocation.getCurrentPosition(
+                  pos => { nursesService.updateLocation(nId, pos.coords.latitude, pos.coords.longitude).catch(() => {}); },
+                  () => { /* permission denied — stop silently */ },
+                  { timeout: 5000, maximumAge: 60000 }
+                );
               };
-              sendLocation(me.id);
-              if (!window._nurseGpsInterval) {
-                window._nurseGpsInterval = setInterval(() => sendLocation(me.id), 30000);
+              // Only start GPS if permission is already granted (don't spam prompts)
+              if (navigator.permissions) {
+                navigator.permissions.query({ name: 'geolocation' }).then(result => {
+                  if (result.state === 'granted') {
+                    sendLocation(me.id);
+                    if (!window._nurseGpsInterval) {
+                      window._nurseGpsInterval = setInterval(() => sendLocation(me.id), 60000);
+                    }
+                  }
+                }).catch(() => {});
               }
             }
           }

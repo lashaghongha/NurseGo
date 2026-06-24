@@ -21,14 +21,14 @@ export default function Navbar() {
   const [notifs, setNotifs] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
   const notifRef = useRef(null);
   const unread = notifs.filter(n => !n.read).length;
 
+  // Remove any previously saved dark theme
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
-    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
+    localStorage.removeItem('theme');
+    document.documentElement.removeAttribute('data-theme');
+  }, []);
 
   // push სტატუსის შემოწმება
   useEffect(() => {
@@ -114,13 +114,6 @@ export default function Navbar() {
         </div>
 
         <div className="navbar-actions">
-          <button
-            onClick={() => setDarkMode(d => !d)}
-            style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', padding: '4px 8px', borderRadius: 8 }}
-            title={darkMode ? 'ღია რეჟიმი' : 'ბნელი რეჟიმი'}
-          >
-            {darkMode ? '☀️' : '🌙'}
-          </button>
           {currentUser ? (
             <div className="user-menu">
               {/* შეტყობინებების ზარი */}

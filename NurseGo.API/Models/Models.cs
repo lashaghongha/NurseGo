@@ -166,6 +166,11 @@ public record ConfirmReceiptRequest(string ServiceName, decimal PricePaid);
 public record SubmitRatingRequest(int OrderId, int NurseId, int Stars, string Comment);
 public record UpdateServicePriceRequest(decimal Price);
 public record ServiceUpsertRequest(string Name, string Icon, decimal Price, string Category, string DurationEstimate, bool IsActive = true);
+public record AdminUpdateNurseRequest(
+    string? Name, string? Email, string? Phone,
+    string? NewPassword,
+    string? LicenseNumber, string? Districts, string? Services,
+    int? ExperienceYears, string? Status, bool? IsVerified);
 public record AuthResponse(string Token, UserDto User);
 public record UserDto(int Id, string Name, string Email, string Role);
 

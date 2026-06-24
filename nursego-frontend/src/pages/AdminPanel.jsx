@@ -39,7 +39,10 @@ export default function AdminPanel() {
   const [ratings, setRatings] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [assigningOrder, setAssigningOrder] = useState(null); // orderId რომელსაც ვანიჭებთ
+  const [assigningOrder, setAssigningOrder] = useState(null);
+  const [editingNurse, setEditingNurse] = useState(null); // nurse obj or null
+  const [nurseForm, setNurseForm] = useState({});
+  const [nurseFormSaving, setNurseFormSaving] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -121,6 +124,50 @@ export default function AdminPanel() {
       setAssigningOrder(null);
       toast.success('ექთანი დაინიშნა!');
     } catch { toast.error('შეცდომა'); }
+  };
+
+  const ALL_DISTRICTS = ['ვაკე','საბურთალო','გლდანი','დიდუბე','ნაძალადევი','ისანი','სამგორი','კრწანისი','დიღომი','ვარკეთილი'];
+
+  const openNurseEdit = (n) => {
+    setNurseForm({
+      name:          n.name || n.user?.name || '',
+      email:         n.email || n.user?.email || '',
+      phone:         n.phone || n.user?.phone || '',
+      newPassword:   '',
+      licenseNumber: n.licenseNumber || '',
+      districts:     n.districts || n.district || '',
+      services:      n.services || '',
+      experienceYears: n.experienceYears ?? 0,
+      status:        n.status || 'Active',
+      isVerified:    n.isVerified ?? false,
+    });
+    setEditingNurse(n);
+  };
+
+  const saveNurseEdit = async () => {
+    setNurseFormSaving(true);
+    try {
+      const payload = {
+        name:           nurseForm.name || null,
+        email:          nurseForm.email || null,
+        phone:          nurseForm.phone || null,
+        newPassword:    nurseForm.newPassword || null,
+        licenseNumber:  nurseForm.licenseNumber || null,
+        districts:      nurseForm.districts || null,
+        services:       nurseForm.services || null,
+        experienceYears: Number(nurseForm.experienceYears),
+        status:         nurseForm.status || null,
+        isVerified:     nurseForm.isVerified,
+      };
+      const updated = await adminService.updateNurse(editingNurse.id, payload);
+      setNurses(prev => prev.map(n => n.id === editingNurse.id ? { ...n, ...updated, user: { ...n.user, name: updated.name, email: updated.email, phone: updated.phone } } : n));
+      setEditingNurse(null);
+      toast.success('ექთნის ინფო განახლდა!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'შეცდომა');
+    } finally {
+      setNurseFormSaving(false);
+    }
   };
 
   const CATEGORIES = ['ინექცია', 'გადასხმა', 'მოვლა', 'გაზომვა', 'პატრონაჟი', 'დამატებითი', 'სასწრაფო'];
@@ -403,6 +450,101 @@ export default function AdminPanel() {
           </div>
         )}
 
+        {/* NURSE EDIT MODAL */}
+        {editingNurse && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div className="card" style={{ width: '100%', maxWidth: 580, padding: 32, maxHeight: '92vh', overflowY: 'auto' }}>
+              <h2 style={{ marginBottom: 20 }}>✏️ ექთნის რედაქტირება — {nurseForm.name}</h2>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>სახელი გვარი</label>
+                  <input className="form-input" value={nurseForm.name} onChange={e => setNurseForm(f => ({ ...f, name: e.target.value }))} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>ელ. ფოსტა</label>
+                  <input className="form-input" type="email" value={nurseForm.email} onChange={e => setNurseForm(f => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>ტელეფონი</label>
+                  <input className="form-input" value={nurseForm.phone} onChange={e => setNurseForm(f => ({ ...f, phone: e.target.value }))} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>ლიცენზიის ნომერი</label>
+                  <input className="form-input" value={nurseForm.licenseNumber} onChange={e => setNurseForm(f => ({ ...f, licenseNumber: e.target.value }))} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>გამოცდილება (წ.)</label>
+                  <input className="form-input" type="number" min={0} value={nurseForm.experienceYears} onChange={e => setNurseForm(f => ({ ...f, experienceYears: e.target.value }))} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>სტატუსი</label>
+                  <select className="form-input" value={nurseForm.status} onChange={e => setNurseForm(f => ({ ...f, status: e.target.value }))}>
+                    <option value="Active">🟢 აქტიური</option>
+                    <option value="Busy">🟡 დაკავებული</option>
+                    <option value="Vacation">🔴 შვებულება</option>
+                    <option value="Offline">⚫ ოფლაინ</option>
+                    <option value="Blocked">🚫 დაბლოკილი</option>
+                    <option value="Pending">⏳ მოლოდინი</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginTop: 14 }}>
+                <label>სამუშაო უბნები <span style={{ fontSize: 12, color: 'var(--gray)' }}>(მონიშნე)</span></label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                  {ALL_DISTRICTS.map(d => {
+                    const selected = (nurseForm.districts || '').split(',').map(x => x.trim()).includes(d);
+                    return (
+                      <label key={d} style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer',
+                        background: selected ? '#eff6ff' : '#f8fafc', border: `1px solid ${selected ? 'var(--primary)' : '#e2e8f0'}`,
+                        borderRadius: 8, padding: '4px 10px', fontSize: 13 }}>
+                        <input type="checkbox" checked={selected} onChange={() => {
+                          const cur = (nurseForm.districts || '').split(',').map(x => x.trim()).filter(Boolean);
+                          const next = selected ? cur.filter(x => x !== d) : [...cur, d];
+                          setNurseForm(f => ({ ...f, districts: next.join(',') }));
+                        }} style={{ marginRight: 2 }} />
+                        📍{d}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>მომსახურებები <span style={{ fontSize: 12, color: 'var(--gray)' }}>(მძიმით გამოყოფილი)</span></label>
+                <textarea className="form-input" rows={2} value={nurseForm.services}
+                  onChange={e => setNurseForm(f => ({ ...f, services: e.target.value }))}
+                  style={{ resize: 'vertical' }} />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input type="checkbox" checked={nurseForm.isVerified}
+                    onChange={e => setNurseForm(f => ({ ...f, isVerified: e.target.checked }))} />
+                  ✅ ვერიფიცირებული (IsVerified)
+                </label>
+              </div>
+
+              <div className="form-group">
+                <label>🔑 ახალი პაროლი <span style={{ fontSize: 12, color: 'var(--gray)' }}>(დატოვე ცარიელი თუ არ ცვლი)</span></label>
+                <input className="form-input" type="password" placeholder="••••••••" value={nurseForm.newPassword}
+                  onChange={e => setNurseForm(f => ({ ...f, newPassword: e.target.value }))}
+                  autoComplete="new-password" />
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveNurseEdit} disabled={nurseFormSaving}>
+                  {nurseFormSaving ? '⏳...' : '✅ შენახვა'}
+                </button>
+                <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setEditingNurse(null)}>
+                  გაუქმება
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* NURSES */}
         {activeTab === 'nurses' && (
           <div className="fade-in">
@@ -429,7 +571,8 @@ export default function AdminPanel() {
                       <td style={{ fontWeight: 700, color: 'var(--secondary)' }}>{n.realEarnings ?? '—'}₾</td>
                       <td>{n.rating ? `⭐ ${n.rating.toFixed(1)}` : '—'}</td>
                       <td>
-                        <div style={{ display: 'flex', gap: 8 }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <button className="btn btn-outline btn-sm" onClick={() => openNurseEdit(n)}>✏️ რედ.</button>
                           {!n.isVerified && <button className="btn btn-secondary btn-sm" onClick={() => verifyNurse(n.id)}>✅ დადასტ.</button>}
                           {n.status !== 'Blocked' && n.isVerified && <button className="btn btn-danger btn-sm" onClick={() => blockNurse(n.id)}>🚫 დაბლ.</button>}
                         </div>

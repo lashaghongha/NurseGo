@@ -14,7 +14,8 @@ public class AdminController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly EmailService _email;
-    public AdminController(AppDbContext db, EmailService email) { _db = db; _email = email; }
+    private readonly AuthService _auth;
+    public AdminController(AppDbContext db, EmailService email, AuthService auth) { _db = db; _email = email; _auth = auth; }
 
     [HttpGet("stats")]
     public async Task<IActionResult> GetStats()
@@ -110,6 +111,56 @@ public class AdminController : ControllerBase
         nurse.Status = NurseStatus.Blocked;
         await _db.SaveChangesAsync();
         return Ok();
+    }
+
+    // PUT /api/admin/nurses/{id} — update all nurse info + optional password change
+    [HttpPut("nurses/{id}")]
+    public async Task<IActionResult> UpdateNurse(int id, AdminUpdateNurseRequest req)
+    {
+        var nurse = await _db.Nurses.Include(n => n.User).FirstOrDefaultAsync(n => n.Id == id);
+        if (nurse == null) return NotFound();
+
+        // Update User fields
+        if (nurse.User != null)
+        {
+            if (!string.IsNullOrWhiteSpace(req.Name))  nurse.User.Name  = req.Name.Trim();
+            if (!string.IsNullOrWhiteSpace(req.Email))
+            {
+                var emailTaken = await _db.Users.AnyAsync(u => u.Email == req.Email && u.Id != nurse.UserId);
+                if (emailTaken) return BadRequest(new { message = "ეს მეილი სხვა ანგარიშს ეკუთვნის" });
+                nurse.User.Email = req.Email.Trim();
+            }
+            if (!string.IsNullOrWhiteSpace(req.Phone))  nurse.User.Phone = req.Phone.Trim();
+            if (!string.IsNullOrWhiteSpace(req.NewPassword))
+                nurse.User.PasswordHash = _auth.HashPassword(req.NewPassword);
+        }
+
+        // Update Nurse fields
+        if (!string.IsNullOrWhiteSpace(req.LicenseNumber)) nurse.LicenseNumber = req.LicenseNumber.Trim();
+        if (!string.IsNullOrWhiteSpace(req.Districts))
+        {
+            nurse.Districts = req.Districts.Trim();
+            nurse.District  = req.Districts.Split(',').FirstOrDefault()?.Trim() ?? nurse.District;
+        }
+        if (!string.IsNullOrWhiteSpace(req.Services))     nurse.Services        = req.Services.Trim();
+        if (req.ExperienceYears.HasValue)                  nurse.ExperienceYears = req.ExperienceYears.Value;
+        if (!string.IsNullOrWhiteSpace(req.Status) && Enum.TryParse<NurseStatus>(req.Status, true, out var st))
+            nurse.Status = st;
+        if (req.IsVerified.HasValue)
+        {
+            nurse.IsVerified = req.IsVerified.Value;
+            if (req.IsVerified.Value && nurse.Status == NurseStatus.Pending)
+                nurse.Status = NurseStatus.Active;
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(new {
+            nurse.Id, nurse.UserId,
+            name = nurse.User?.Name, email = nurse.User?.Email, phone = nurse.User?.Phone,
+            nurse.LicenseNumber, nurse.Districts, nurse.District,
+            nurse.ExperienceYears, nurse.Services,
+            nurse.Status, nurse.IsVerified,
+        });
     }
 
     // DELETE /api/admin/nurses/{id} — reject & delete unverified nurse application

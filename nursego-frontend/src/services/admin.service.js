@@ -28,6 +28,9 @@ export const adminService = {
   rejectNurse: (id) =>
     api.delete(`/admin/nurses/${id}`).then(r => r.data),
 
+  updateNurse: (id, data) =>
+    api.put(`/admin/nurses/${id}`, data).then(r => r.data),
+
   assignNurse: (orderId, nurseId) =>
     api.put(`/orders/${orderId}/assign/${nurseId}`).then(r => r.data),
 };

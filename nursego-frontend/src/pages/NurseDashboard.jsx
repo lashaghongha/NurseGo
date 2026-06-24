@@ -264,13 +264,13 @@ export default function NurseDashboard() {
   const saveDistricts = async (newList) => {
     if (newList.length === 0) { toast.error('მინიმუმ ერთი უბანი გჭირდება'); return; }
     setMyDistricts(newList);
-    if (!nurseId) return;
+    setShowDistrictEdit(false); // always close panel immediately
+    if (!nurseId) { toast('უბნები დროებით შეინახა (გვერდი განახლდება)', { icon: 'ℹ️' }); return; }
     try {
       await nursesService.updateDistricts(nurseId, newList.join(','));
       toast.success('უბნები განახლდა!');
-      setShowDistrictEdit(false);
     } catch {
-      toast.error('განახლება ვერ მოხდა');
+      toast.error('სერვერზე განახლება ვერ მოხდა');
     }
   };
 

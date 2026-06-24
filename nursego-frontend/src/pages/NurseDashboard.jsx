@@ -127,8 +127,8 @@ export default function NurseDashboard() {
         try {
           const me = await nursesService.getMe();
           if (me) {
-            if (pushService.isSupported() && !pushService.isGranted()) {
-              pushService.requestPermission().then(granted => {
+            if (pushService.isSupported() && Notification.permission === 'default') {
+              pushService.subscribe().then(granted => {
                 if (granted) toast('🔔 შეტყობინებები ჩართულია', { duration: 2000 });
               });
             }

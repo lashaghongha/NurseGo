@@ -101,6 +101,8 @@ public class OrdersController : ControllerBase
                         isOtherDistrict = false, isDirect = true,
                     });
 
+                _ = _push.SendToUser(preferred.UserId, "🔔 პირდაპირი გამოძახება!", $"{service.Name} — {order.District}", "/nurse/dashboard");
+
                 await _hub.Clients.Group($"order-{order.Id}")
                     .SendAsync("StatusChanged", "Assigned");
 
@@ -131,7 +133,10 @@ public class OrdersController : ControllerBase
         };
 
         foreach (var n in districtNurses)
+        {
             await _hub.Clients.Group($"nurse-{n.Id}").SendAsync("NewOrder", payload);
+            _ = _push.SendToUser(n.UserId, "🔔 ახალი შეკვეთა!", $"{service.Name} — {order.District}", "/nurse/dashboard");
+        }
 
         // SignalR — კლიენტს ეცნობება სტატუსი
         await _hub.Clients.Group($"order-{order.Id}")
@@ -171,8 +176,12 @@ public class OrdersController : ControllerBase
                 isOtherDistrict = true,
             };
 
+            var push = scope.ServiceProvider.GetRequiredService<PushService>();
             foreach (var n in otherNurses)
+            {
                 await hub.Clients.Group($"nurse-{n.Id}").SendAsync("NewOrder", otherPayload);
+                _ = push.SendToUser(n.UserId, "🔔 ახალი შეკვეთა!", $"{service.Name} — {o.District} (სხვა უბანი)", "/nurse/dashboard");
+            }
         });
 
         return Ok(new { order.Id, order.TotalPrice, order.Status, nurseAssigned = false });
@@ -203,6 +212,9 @@ public class OrdersController : ControllerBase
         // კლიენტს ვაცნობებთ — ექთანი მოდის!
         await _hub.Clients.Group($"order-{id}")
             .SendAsync("StatusChanged", "Assigned");
+
+        // Push — კლიენტს შეტყობინება
+        _ = _push.SendToUser(order.CustomerId, "NurseGo 👩‍⚕️", "ექთანი მიღებულია — გამოდის თქვენსკენ!", $"/tracking/{id}");
 
         // სხვა ექთნებს ვეუბნებით — შეკვეთა დახურულია
         await _hub.Clients.All

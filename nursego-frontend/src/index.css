@@ -226,3 +226,79 @@ input, select, textarea {
   50% { opacity: 0.5; }
 }
 .pulse { animation: pulse 2s infinite; }
+
+/* ─── Dark Mode ──────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --primary: #38bdf8;
+  --primary-dark: #0ea5e9;
+  --secondary: #34d399;
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --dark: #f1f5f9;
+  --gray: #94a3b8;
+  --light: #1e293b;
+  --white: #0f172a;
+  --shadow: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -1px rgba(0,0,0,0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -2px rgba(0,0,0,0.3);
+}
+
+[data-theme="dark"] body,
+[data-theme="dark"] {
+  background: #0f172a;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .card {
+  background: #1e293b;
+  border: 1px solid #334155;
+}
+
+[data-theme="dark"] .navbar {
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+[data-theme="dark"] .mobile-bottom-nav {
+  background: #1e293b;
+  border-top: 1px solid #334155;
+}
+
+[data-theme="dark"] .form-input,
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #0f172a;
+  color: #f1f5f9;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .admin-table {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .admin-table th {
+  background: #0f172a;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .admin-table tr:nth-child(even) {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .admin-table tr:nth-child(odd) {
+  background: #263147;
+}
+
+[data-theme="dark"] .badge-offline {
+  background: #334155;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .btn-outline {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track { background: #1e293b; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #475569; }

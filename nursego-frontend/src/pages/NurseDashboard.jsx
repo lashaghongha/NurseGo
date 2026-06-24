@@ -170,7 +170,7 @@ export default function NurseDashboard() {
           const active  = myOrders.find(o => ['Assigned','EnRoute','Arrived','InProgress'].includes(o.status));
           const history = myOrders.filter(o => o.status === 'Completed' || o.status === 'Cancelled');
           setActiveOrder(active || null);
-          setHistoryOrders(history.slice(0, 10));
+          setHistoryOrders(history);
         } catch (ordersErr) {
           console.error('Orders load failed:', ordersErr);
         }
@@ -311,8 +311,14 @@ export default function NurseDashboard() {
   };
 
   const currentFlowStep = STATUS_FLOW.findIndex(s => s.status === activeOrder?.status);
-  const monthlyEarnings = historyOrders.reduce((sum, o) => sum + (o.totalPrice || 0) * 0.8, 0);
-  const avgRating = historyOrders.filter(o => o.rating).reduce((s, o, _, a) => s + o.rating / a.length, 0);
+  const now = new Date();
+  const thisMonthOrders = historyOrders.filter(o => {
+    const d = new Date(o.completedAt || o.createdAt);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && o.status === 'Completed';
+  });
+  const monthlyEarnings = thisMonthOrders.reduce((sum, o) => sum + (o.totalPrice || 0) * 0.8, 0);
+  const completedOrders = historyOrders.filter(o => o.status === 'Completed');
+  const avgRating = completedOrders.filter(o => o.rating).reduce((s, o, _, a) => s + o.rating / a.length, 0);
 
   if (loading) return (
     <div className="nurse-dash"><div className="container" style={{ padding: '80px 0', textAlign: 'center' }}>⏳ იტვირთება...</div></div>
@@ -338,7 +344,7 @@ export default function NurseDashboard() {
 
         <div className="grid-4" style={{ marginBottom: 32 }}>
           <div className="card dash-stat"><div className="ds-val">{Math.round(monthlyEarnings)}₾</div><div className="ds-label">ამ თვის შემოსავალი</div></div>
-          <div className="card dash-stat"><div className="ds-val">{historyOrders.length}</div><div className="ds-label">დასრულებული შეკვ.</div></div>
+          <div className="card dash-stat"><div className="ds-val">{completedOrders.length}</div><div className="ds-label">დასრულებული შეკვ.</div></div>
           <div className="card dash-stat"><div className="ds-val">{avgRating ? `${avgRating.toFixed(1)}⭐` : '—'}</div><div className="ds-label">ჩემი რეიტინგი</div></div>
           <div className="card dash-stat"><div className="ds-val">{pendingOrders.length}</div><div className="ds-label">ახალი შეკვეთა</div></div>
         </div>

@@ -321,7 +321,7 @@ export default function TrackingPage() {
                 <button className="btn btn-outline btn-sm" onClick={fetchOrder}>🔄 განახლება</button>
                 {order.nurse && order.status !== 'Pending' && (
                   <button className="btn btn-outline btn-sm" onClick={() => setShowChat(c => !c)}>
-                    💬 ჩეთი {chatMessages.length > 0 && `(${chatMessages.length})`}
+                    💬 მიომწერე {chatMessages.length > 0 && `(${chatMessages.length})`}
                   </button>
                 )}
               </div>
@@ -330,7 +330,7 @@ export default function TrackingPage() {
               {showChat && (
                 <div style={{ marginTop: 16, border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
                   <div style={{ background: '#f8fafc', padding: '10px 14px', fontWeight: 700, fontSize: 13 }}>
-                    💬 ჩეთი — {order.nurse?.user?.name || 'ექთანი'}
+                    💬 მიომწერე — {order.nurse?.user?.name || 'ექთანი'}
                   </div>
                   <div style={{ height: 200, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {chatMessages.length === 0 ? (

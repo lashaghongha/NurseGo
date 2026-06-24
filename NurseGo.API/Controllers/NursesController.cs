@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NurseGo.API.Data;
+using NurseGo.API.Hubs;
 using NurseGo.API.Models;
 
 namespace NurseGo.API.Controllers;
@@ -12,8 +14,13 @@ namespace NurseGo.API.Controllers;
 public class NursesController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IHubContext<OrderHub> _hub;
 
-    public NursesController(AppDbContext db) => _db = db;
+    public NursesController(AppDbContext db, IHubContext<OrderHub> hub)
+    {
+        _db = db;
+        _hub = hub;
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? district, [FromQuery] string? status)
@@ -211,6 +218,17 @@ public class NursesController : ControllerBase
         nurse.Latitude = req.Lat;
         nurse.Longitude = req.Lng;
         await _db.SaveChangesAsync();
+
+        // Real-time broadcast to customer tracking their active order
+        var activeOrder = await _db.Orders
+            .Where(o => o.NurseId == id && o.Status == OrderStatus.EnRoute)
+            .Select(o => new { o.Id })
+            .FirstOrDefaultAsync();
+
+        if (activeOrder != null)
+            await _hub.Clients.Group($"order-{activeOrder.Id}")
+                .SendAsync("NurseLocation", new { lat = req.Lat, lng = req.Lng });
+
         return Ok();
     }
 }

@@ -63,6 +63,7 @@ export default function TrackingPage() {
   const [chatMessages, setChatMessages]       = useState([]);
   const [chatInput, setChatInput]             = useState('');
   const [geoCoords, setGeoCoords]             = useState(null);
+  const [nurseRealCoords, setNurseRealCoords] = useState(null);
   const [showReceipt, setShowReceipt]         = useState(false);
   const [receiptService, setReceiptService]   = useState('');
   const [receiptPrice, setReceiptPrice]       = useState('');
@@ -122,6 +123,9 @@ export default function TrackingPage() {
           setChatMessages(prev => [...prev, msg]);
           if (!showChat) toast('💬 ახალი შეტყობინება', { duration: 2000 });
         });
+        signalRService.on('NurseLocation', (data) => {
+          setNurseRealCoords([data.lat, data.lng]);
+        });
       } catch { /* polling as fallback */ }
     };
     initSignalR();
@@ -133,6 +137,7 @@ export default function TrackingPage() {
       clearInterval(pollRef.current);
       signalRService.off('StatusChanged');
       signalRService.off('NewChatMessage');
+      signalRService.off('NurseLocation');
     };
   }, [orderId]);
 
@@ -197,9 +202,11 @@ export default function TrackingPage() {
   const distCoords       = DISTRICT_COORDS[order?.district] || [41.7151, 44.8271];
   // geocoded coords > district center
   const homeCoords       = geoCoords || distCoords;
-  const nurseCoords      = order?.nurse?.latitude && order?.nurse?.longitude
-    ? [order.nurse.latitude, order.nurse.longitude]
-    : [homeCoords[0] - 0.012, homeCoords[1] - 0.012];
+  // Priority: 1) real-time SignalR location  2) DB location  3) approx offset from home
+  const nurseCoords = nurseRealCoords
+    || (order?.nurse?.latitude && order?.nurse?.longitude
+        ? [order.nurse.latitude, order.nurse.longitude]
+        : [homeCoords[0] - 0.012, homeCoords[1] - 0.012]);
   const canCancel   = order && !['Completed','Cancelled','InProgress'].includes(order.status);
   const cancelFeeWarning = order?.status === 'Arrived'
     ? `⚠️ ყურადღება: ექთანი უკვე ადგილზეა. გაუქმებისას დაგეკისრება ჯარიმა — შეკვეთის ღირებულების 20% (${Math.round((order?.totalPrice||0)*0.2)}₾).`

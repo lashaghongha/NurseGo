@@ -290,6 +290,20 @@ export default function NurseDashboard() {
     }
   };
 
+  const startEnRouteGps = (nId) => {
+    if (!navigator.geolocation) return;
+    const sendLoc = () => {
+      navigator.geolocation.getCurrentPosition(
+        pos => nursesService.updateLocation(nId, pos.coords.latitude, pos.coords.longitude).catch(() => {}),
+        () => {},
+        { timeout: 8000, maximumAge: 10000 }
+      );
+    };
+    sendLoc(); // immediate first send
+    clearInterval(window._nurseGpsInterval);
+    window._nurseGpsInterval = setInterval(sendLoc, 15000); // every 15s while EnRoute
+  };
+
   const advanceStatus = async () => {
     if (!activeOrder) return;
     const flow = STATUS_FLOW.find(s => s.status === activeOrder.status);
@@ -297,7 +311,22 @@ export default function NurseDashboard() {
 
     try {
       await ordersService.updateStatus(activeOrder.id, flow.next);
+      if (flow.next === 'EnRoute') {
+        // Ask for GPS permission when nurse starts driving
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            pos => {
+              nursesService.updateLocation(nurseId, pos.coords.latitude, pos.coords.longitude).catch(() => {});
+              startEnRouteGps(nurseId);
+            },
+            () => toast('📍 GPS ჩართეთ — კლიენტი ნახავს სად ხართ', { icon: '⚠️', duration: 4000 }),
+            { timeout: 10000 }
+          );
+        }
+      }
       if (flow.next === 'Completed') {
+        clearInterval(window._nurseGpsInterval);
+        window._nurseGpsInterval = null;
         setHistoryOrders(prev => [{ ...activeOrder, status: 'Completed' }, ...prev]);
         setActiveOrder(null);
         toast.success('შეკვეთა დასრულდა! 🎉');

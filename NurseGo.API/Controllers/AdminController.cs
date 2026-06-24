@@ -22,9 +22,10 @@ public class AdminController : ControllerBase
         var totalOrders     = await _db.Orders.CountAsync();
         var completedOrders = await _db.Orders.CountAsync(o => o.Status == OrderStatus.Completed);
         var pendingOrders   = await _db.Orders.CountAsync(o => o.Status == OrderStatus.Pending && o.NurseId == null);
-        var totalRevenue    = await _db.Orders
+        // SQLite doesn't support Sum on decimal — sum doubles then convert back
+        var totalRevenue    = (decimal)(await _db.Orders
             .Where(o => o.Status == OrderStatus.Completed)
-            .SumAsync(o => o.TotalPrice);
+            .SumAsync(o => (double)o.TotalPrice));
         var platformRevenue = totalRevenue * 0.2m;
         var activeNurses    = await _db.Nurses.CountAsync(n => n.Status == NurseStatus.Active);
         var pendingNurses   = await _db.Nurses.CountAsync(n => !n.IsVerified);
@@ -58,13 +59,14 @@ public class AdminController : ControllerBase
 
         // რეალური შემოსავალი — DB-დან, არა გამოანგარიშება
         var nurseIds = nurses.Select(n => n.Id).ToList();
-        var earnings = await _db.Orders
+        // SQLite doesn't support Sum on decimal — fetch raw and aggregate in memory
+        var earningsRaw = await _db.Orders
             .Where(o => o.Status == OrderStatus.Completed && o.NurseId.HasValue && nurseIds.Contains(o.NurseId.Value))
-            .GroupBy(o => o.NurseId!.Value)
-            .Select(g => new { NurseId = g.Key, Total = g.Sum(o => o.TotalPrice) })
+            .Select(o => new { o.NurseId, o.TotalPrice })
             .ToListAsync();
-
-        var earningsMap = earnings.ToDictionary(e => e.NurseId, e => e.Total);
+        var earningsMap = earningsRaw
+            .GroupBy(o => o.NurseId!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(o => o.TotalPrice));
 
         var result = nurses.Select(n => new
         {
@@ -188,8 +190,13 @@ public class AdminController : ControllerBase
     [HttpGet("revenue/monthly")]
     public async Task<IActionResult> GetMonthlyRevenue()
     {
-        var data = await _db.Orders
+        // SQLite: aggregate in memory to avoid decimal Sum translation issues
+        var raw = await _db.Orders
             .Where(o => o.Status == OrderStatus.Completed && o.CompletedAt.HasValue)
+            .Select(o => new { o.CompletedAt, o.TotalPrice })
+            .ToListAsync();
+
+        var data = raw
             .GroupBy(o => new { o.CompletedAt!.Value.Year, o.CompletedAt.Value.Month })
             .Select(g => new
             {
@@ -201,7 +208,7 @@ public class AdminController : ControllerBase
             })
             .OrderByDescending(x => x.Year).ThenByDescending(x => x.Month)
             .Take(12)
-            .ToListAsync();
+            .ToList();
         return Ok(data);
     }
 

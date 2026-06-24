@@ -123,50 +123,57 @@ export default function NurseDashboard() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Get nurse profile via authenticated endpoint (works for all statuses including Pending)
-        const me = await nursesService.getMe();
-        if (me) {
-          // Push notification ნებართვა
-          if (pushService.isSupported() && !pushService.isGranted()) {
-            pushService.requestPermission().then(granted => {
-              if (granted) toast('🔔 შეტყობინებები ჩართულია', { duration: 2000 });
-            });
-          }
-          setNurseId(me.id);
-          setNurseStatus(me.status || 'Active');
-          const dList = me.districts ? me.districts.split(',').map(d => d.trim()).filter(Boolean)
-                      : me.district ? [me.district] : [];
-          setMyDistricts(dList);
+        // 1. Nurse profile (isolated — if this fails orders still load)
+        try {
+          const me = await nursesService.getMe();
+          if (me) {
+            if (pushService.isSupported() && !pushService.isGranted()) {
+              pushService.requestPermission().then(granted => {
+                if (granted) toast('🔔 შეტყობინებები ჩართულია', { duration: 2000 });
+              });
+            }
+            setNurseId(me.id);
+            setNurseStatus(me.status || 'Active');
+            const dList = me.districts ? me.districts.split(',').map(d => d.trim()).filter(Boolean)
+                        : me.district ? [me.district] : [];
+            setMyDistricts(dList);
 
-          if (navigator.geolocation) {
-            const sendLocation = (nId) => {
-              navigator.geolocation.getCurrentPosition(pos => {
-                nursesService.updateLocation(nId, pos.coords.latitude, pos.coords.longitude).catch(() => {});
-              }, () => {});
-            };
-            sendLocation(me.id);
-            const gpsInterval = setInterval(() => sendLocation(me.id), 30000);
-            window._nurseGpsInterval = gpsInterval;
+            if (navigator.geolocation) {
+              const sendLocation = (nId) => {
+                navigator.geolocation.getCurrentPosition(pos => {
+                  nursesService.updateLocation(nId, pos.coords.latitude, pos.coords.longitude).catch(() => {});
+                }, () => {});
+              };
+              sendLocation(me.id);
+              if (!window._nurseGpsInterval) {
+                window._nurseGpsInterval = setInterval(() => sendLocation(me.id), 30000);
+              }
+            }
           }
+        } catch (profileErr) {
+          console.error('Nurse profile load failed:', profileErr);
+          // don't block orders loading
         }
 
-        // ჩემი მიმდინარე + ისტორია
-        const myOrders = await ordersService.getMyOrders();
-        const active  = myOrders.find(o => ['Assigned','EnRoute','Arrived','InProgress'].includes(o.status));
-        const history = myOrders.filter(o => o.status === 'Completed' || o.status === 'Cancelled');
-        setActiveOrder(active || null);
-        setHistoryOrders(history.slice(0, 10));
+        // 2. My orders (history + active)
+        try {
+          const myOrders = await ordersService.getMyOrders();
+          const active  = myOrders.find(o => ['Assigned','EnRoute','Arrived','InProgress'].includes(o.status));
+          const history = myOrders.filter(o => o.status === 'Completed' || o.status === 'Cancelled');
+          setActiveOrder(active || null);
+          setHistoryOrders(history.slice(0, 10));
+        } catch (ordersErr) {
+          console.error('Orders load failed:', ordersErr);
+        }
 
-        // ხელმისაწვდომი შეკვეთები (Pending) — ჩემი + სხვა უბანი
+        // 3. Available pending orders
         try {
           const avail = await ordersService.getAvailable();
           const same  = (avail.sameDistrict  || []).map(o => ({ ...o, _isOther: false }));
           const other = (avail.otherDistrict || []).map(o => ({ ...o, _isOther: true  }));
           setPendingOrders([...same, ...other]);
-        } catch { /* თუ ჯერ არარის endpoint */ }
+        } catch { /* endpoint might not exist yet */ }
 
-      } catch {
-        toast.error('მონაცემები ვერ ჩაიტვირთა');
       } finally {
         setLoading(false);
       }

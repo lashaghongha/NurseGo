@@ -101,9 +101,11 @@ export default function OrderPage() {
     setLoading(true);
     const effectiveDistrict = selectedDistrict
       || (pinCoords ? nearestDistrict(pinCoords.lat, pinCoords.lng) : DISTRICTS[0]);
+
+    // ── Step 1: შეკვეთის შექმნა ──────────────────────────────────────────────
+    let order;
     try {
-      // ყველა სერვისი → ერთი შეკვეთა (პირველი = primary, დანარჩენი = extraServiceIds)
-      const order = await ordersService.create({
+      order = await ordersService.create({
         serviceId:       selectedServices[0].id,
         extraServiceIds: selectedServices.slice(1).map(s => s.id),
         address,
@@ -115,29 +117,33 @@ export default function OrderPage() {
         preferredNurseId,
         notes,
       });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'შეკვეთა ვერ გაიგზავნა. სცადე თავიდან.');
+      setLoading(false);
+      return;
+    }
 
-      if (paymentMethod === 'online') {
-        // BOG Pay redirect
+    // ── Step 2: გადახდა (წარუმატებლობა არ კლავს შეკვეთას) ──────────────────
+    if (paymentMethod === 'online') {
+      try {
         const payment = await paymentsService.create(order.id);
         if (payment.isDev) {
-          // Dev mode — simulate payment
-          toast.success('Dev: გადახდა სიმულირდება...');
           await paymentsService.verifyDev(order.id);
           toast.success('✅ შეკვეთა და გადახდა დასრულდა!');
         } else {
-          // Production — redirect to BOG
           window.location.href = payment.redirectUrl;
           return;
         }
-      } else {
-        toast.success('შეკვეთა გაგზავნილია!');
+      } catch {
+        // BOG Pay not configured or failed — order still exists, proceed
+        toast.success('შეკვეთა გაგზავნილია! (გადახდა ადგილზე)');
       }
-      navigate(`/tracking/${order.id}`);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'შეცდომა. სცადე თავიდან.');
-    } finally {
-      setLoading(false);
+    } else {
+      toast.success('შეკვეთა გაგზავნილია!');
     }
+
+    setLoading(false);
+    navigate(`/tracking/${order.id}`);
   };
 
   return (

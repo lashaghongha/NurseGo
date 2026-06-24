@@ -20,7 +20,8 @@ import ProfilePage from './pages/ProfilePage';
 import VideoConsultPage from './pages/VideoConsultPage';
 
 const ProtectedRoute = ({ children, roles }) => {
-  const { currentUser, userRole } = useApp();
+  const { currentUser, userRole, authLoading } = useApp();
+  if (authLoading) return null; // localStorage-ის წაკითხვას ვიცდით
   if (!currentUser) return <Navigate to="/login" />;
   if (roles && !roles.includes(userRole)) return <Navigate to="/" />;
   return children;

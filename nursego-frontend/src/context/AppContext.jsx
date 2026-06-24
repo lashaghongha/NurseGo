@@ -10,14 +10,21 @@ export const AppProvider = ({ children }) => {
   const [cart, setCart] = useState(null);
   const [activeOrders, setActiveOrders] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem('nursego_user');
-    if (saved) {
-      const user = JSON.parse(saved);
-      const normalized = { ...user, role: user.role?.toLowerCase() };
-      setCurrentUser(normalized);
-      setUserRole(normalized.role);
+    try {
+      const saved = localStorage.getItem('nursego_user');
+      if (saved) {
+        const user = JSON.parse(saved);
+        const normalized = { ...user, role: user.role?.toLowerCase() };
+        setCurrentUser(normalized);
+        setUserRole(normalized.role);
+      }
+    } catch {
+      localStorage.removeItem('nursego_user');
+    } finally {
+      setAuthLoading(false);
     }
   }, []);
 
@@ -42,7 +49,7 @@ export const AppProvider = ({ children }) => {
 
   return (
     <AppContext.Provider value={{
-      currentUser, userRole, login, logout,
+      currentUser, userRole, authLoading, login, logout,
       cart, setCart,
       activeOrders, setActiveOrders,
       notifications, addNotification

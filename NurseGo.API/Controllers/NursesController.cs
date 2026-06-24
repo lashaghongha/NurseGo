@@ -239,7 +239,7 @@ public class NursesController : ControllerBase
         var nurse = await _db.Nurses.FindAsync(id);
         if (nurse == null) return NotFound();
 
-        nurse.Rating = Math.Max(0, Math.Min(5, nurse.Rating + req.Delta));
+        nurse.Rating = Math.Max(0, Math.Min(5, nurse.Rating + (double)req.Delta));
         await _db.SaveChangesAsync();
 
         return Ok(new { rating = nurse.Rating });
@@ -247,4 +247,4 @@ public class NursesController : ControllerBase
 }
 
 public record LocationUpdate(double Lat, double Lng);
-public record RatingAdjust(decimal Delta);
+public record RatingAdjust(double Delta);

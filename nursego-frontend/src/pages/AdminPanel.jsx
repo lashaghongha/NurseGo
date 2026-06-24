@@ -21,7 +21,7 @@ const TABS = [
   { key: 'nurses',    label: '👩‍⚕️ ექთნები' },
   { key: 'users',     label: '👤 მომხმარებლები' },
   { key: 'orders',    label: '📋 შეკვეთები' },
-  { key: 'prices',    label: '💰 ფასები' },
+  { key: 'prices',    label: '🛠️ მომსახურება' },
   { key: 'ratings',   label: '⭐ შეფასებები' },
 ];
 
@@ -32,8 +32,9 @@ export default function AdminPanel() {
   const [nurses, setNurses] = useState([]);
   const [orders, setOrders] = useState([]);
   const [pendingOrders, setPendingOrders] = useState([]);
-  const [prices, setPrices] = useState([]);
-  const [editingPrice, setEditingPrice] = useState(null);
+  const [services, setServices] = useState([]);
+  const [editingService, setEditingService] = useState(null); // null | 'new' | serviceObj
+  const [serviceForm, setServiceForm] = useState({ name: '', icon: '💊', price: '', category: '', durationEstimate: '', isActive: true });
   const [ratings, setRatings] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,8 +67,8 @@ export default function AdminPanel() {
       if (nurses.length === 0)
         adminService.getAllNurses().then(setNurses).catch(() => {});
     }
-    if (activeTab === 'prices' && prices.length === 0) {
-      servicesService.getAll().then(setPrices).catch(() => toast.error('ფასები ვერ ჩაიტვირთა'));
+    if (activeTab === 'prices') {
+      servicesService.getAllForAdmin().then(setServices).catch(() => toast.error('მომსახურებები ვერ ჩაიტვირთა'));
     }
     if (activeTab === 'ratings' && ratings.length === 0) {
       api.get('/ratings').then(r => setRatings(r.data)).catch(() => toast.error('შეფასებები ვერ ჩაიტვირთა'));
@@ -108,11 +109,54 @@ export default function AdminPanel() {
     } catch { toast.error('შეცდომა'); }
   };
 
-  const updatePrice = async (id, newPrice) => {
-    await servicesService.updatePrice(id, Number(newPrice));
-    setPrices(prev => prev.map(s => s.id === id ? { ...s, price: Number(newPrice) } : s));
-    setEditingPrice(null);
-    toast.success('ფასი განახლდა!');
+  const CATEGORIES = ['ინექცია', 'გადასხმა', 'მოვლა', 'გაზომვა', 'პატრონაჟი', 'დამატებითი', 'სასწრაფო'];
+  const ICONS = ['💉','🩸','🧴','🔧','🩹','✂️','📏','🍬','👴','💊','🎥','🚨','🏥','💙','🩺','🧪','❤️','🫀','🧠','💪'];
+
+  const openNew = () => {
+    setServiceForm({ name: '', icon: '💊', price: '', category: CATEGORIES[0], durationEstimate: '', isActive: true });
+    setEditingService('new');
+  };
+  const openEdit = (s) => {
+    setServiceForm({ name: s.name, icon: s.icon, price: s.price, category: s.category, durationEstimate: s.durationEstimate, isActive: s.isActive });
+    setEditingService(s);
+  };
+  const closeForm = () => setEditingService(null);
+
+  const saveService = async () => {
+    const payload = { ...serviceForm, price: Number(serviceForm.price) };
+    if (!payload.name || !payload.price || !payload.category) {
+      toast.error('შეავსე სავალდებულო ველები');
+      return;
+    }
+    try {
+      if (editingService === 'new') {
+        const created = await servicesService.create(payload);
+        setServices(prev => [...prev, created]);
+        toast.success('მომსახურება დაემატა!');
+      } else {
+        const updated = await servicesService.update(editingService.id, payload);
+        setServices(prev => prev.map(s => s.id === updated.id ? updated : s));
+        toast.success('მომსახურება განახლდა!');
+      }
+      closeForm();
+    } catch { toast.error('შეცდომა. სცადე თავიდან.'); }
+  };
+
+  const deleteService = async (id) => {
+    if (!window.confirm('დარწმუნებული ხარ წაშლაში? (სერვისი გამოირთვება, მაგრამ ისტორია შეინახება)')) return;
+    try {
+      await servicesService.delete(id);
+      setServices(prev => prev.map(s => s.id === id ? { ...s, isActive: false } : s));
+      toast.success('მომსახურება გამოირთო!');
+    } catch { toast.error('შეცდომა'); }
+  };
+
+  const restoreService = async (id) => {
+    try {
+      const updated = await servicesService.restore(id);
+      setServices(prev => prev.map(s => s.id === updated.id ? updated : s));
+      toast.success('მომსახურება ჩაირთო!');
+    } catch { toast.error('შეცდომა'); }
   };
 
   const NURSE_STATUS = {
@@ -353,30 +397,110 @@ export default function AdminPanel() {
         {/* PRICES */}
         {activeTab === 'prices' && (
           <div className="fade-in">
-            <h1 className="page-title">ფასების მართვა</h1>
-            <div className="prices-grid">
-              {prices.map(s => (
-                <div key={s.id} className="price-edit-card card">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                    <span style={{ fontSize: 32 }}>{s.icon}</span>
-                    <div style={{ fontWeight: 600 }}>{s.name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+              <h1 className="page-title" style={{ margin: 0 }}>🛠️ მომსახურებების მართვა</h1>
+              <button className="btn btn-primary" onClick={openNew}>+ ახალი მომსახურება</button>
+            </div>
+
+            {/* Modal */}
+            {editingService !== null && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="card" style={{ width: '100%', maxWidth: 520, padding: 32, maxHeight: '90vh', overflowY: 'auto' }}>
+                  <h2 style={{ marginBottom: 20 }}>{editingService === 'new' ? '➕ ახალი მომსახურება' : '✏️ მომსახურების რედაქტირება'}</h2>
+
+                  <div className="form-group">
+                    <label>სახელი *</label>
+                    <input className="form-input" value={serviceForm.name} onChange={e => setServiceForm(f => ({ ...f, name: e.target.value }))} placeholder="მაგ. კუნთში ინექცია" />
                   </div>
-                  {editingPrice === s.id ? (
-                    <div className="price-edit-form">
-                      <input type="number" defaultValue={s.price} className="price-input" id={`price-${s.id}`} min={1} />
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button className="btn btn-secondary btn-sm" onClick={() => updatePrice(s.id, document.getElementById(`price-${s.id}`).value)}>შენახვა</button>
-                        <button className="btn btn-outline btn-sm" onClick={() => setEditingPrice(null)}>გაუქმება</button>
-                      </div>
+
+                  <div className="form-group">
+                    <label>ემოჯი / ხატულა *</label>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                      {ICONS.map(ic => (
+                        <button key={ic} type="button"
+                          onClick={() => setServiceForm(f => ({ ...f, icon: ic }))}
+                          style={{ fontSize: 22, padding: '4px 8px', borderRadius: 8, border: serviceForm.icon === ic ? '2px solid var(--primary)' : '2px solid transparent', background: serviceForm.icon === ic ? 'var(--primary-light, #eff6ff)' : '#f8fafc', cursor: 'pointer' }}>
+                          {ic}
+                        </button>
+                      ))}
                     </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 28, fontWeight: 900, color: 'var(--primary)' }}>{s.price}₾</span>
-                      <button className="btn btn-outline btn-sm" onClick={() => setEditingPrice(s.id)}>✏️ შეცვლა</button>
+                    <input className="form-input" value={serviceForm.icon} onChange={e => setServiceForm(f => ({ ...f, icon: e.target.value }))} placeholder="ან აკრიფე ემოჯი" style={{ width: 100 }} />
+                  </div>
+
+                  <div className="form-group">
+                    <label>კატეგორია *</label>
+                    <select className="form-input" value={serviceForm.category} onChange={e => setServiceForm(f => ({ ...f, category: e.target.value }))}>
+                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>ფასი (₾) *</label>
+                    <input className="form-input" type="number" min={1} value={serviceForm.price} onChange={e => setServiceForm(f => ({ ...f, price: e.target.value }))} placeholder="20" />
+                  </div>
+
+                  <div className="form-group">
+                    <label>ხანგრძლივობა</label>
+                    <input className="form-input" value={serviceForm.durationEstimate} onChange={e => setServiceForm(f => ({ ...f, durationEstimate: e.target.value }))} placeholder="30 წთ" />
+                  </div>
+
+                  {editingService !== 'new' && (
+                    <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input type="checkbox" id="svc-active" checked={serviceForm.isActive} onChange={e => setServiceForm(f => ({ ...f, isActive: e.target.checked }))} />
+                      <label htmlFor="svc-active" style={{ marginBottom: 0 }}>აქტიური (ჩართული)</label>
                     </div>
                   )}
+
+                  <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+                    <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveService}>✅ შენახვა</button>
+                    <button className="btn btn-outline" style={{ flex: 1 }} onClick={closeForm}>გაუქმება</button>
+                  </div>
                 </div>
-              ))}
+              </div>
+            )}
+
+            {/* Services table */}
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>ხატ.</th>
+                    <th>სახელი</th>
+                    <th>კატეგ.</th>
+                    <th>ფასი</th>
+                    <th>ხანგ.</th>
+                    <th>სტ.</th>
+                    <th>მოქმ.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {services.length === 0 ? (
+                    <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--gray)', padding: 32 }}>მომსახურება არ არის</td></tr>
+                  ) : services.map(s => (
+                    <tr key={s.id} style={{ opacity: s.isActive ? 1 : 0.45 }}>
+                      <td style={{ fontSize: 24 }}>{s.icon}</td>
+                      <td style={{ fontWeight: 600 }}>{s.name}</td>
+                      <td><span style={{ fontSize: 12, background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: 20 }}>{s.category}</span></td>
+                      <td style={{ fontWeight: 700, color: 'var(--primary)', fontSize: 16 }}>{s.price}₾</td>
+                      <td style={{ color: 'var(--gray)', fontSize: 13 }}>{s.durationEstimate || '—'}</td>
+                      <td>
+                        {s.isActive
+                          ? <span style={{ color: '#15803d', fontSize: 12 }}>✅ ჩართ.</span>
+                          : <span style={{ color: '#dc2626', fontSize: 12 }}>❌ გამოირთ.</span>}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="btn btn-outline btn-sm" onClick={() => openEdit(s)}>✏️</button>
+                          {s.isActive
+                            ? <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }} onClick={() => deleteService(s.id)}>🗑️</button>
+                            : <button className="btn btn-sm" style={{ background: '#dcfce7', color: '#15803d', border: 'none' }} onClick={() => restoreService(s.id)}>↩️</button>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

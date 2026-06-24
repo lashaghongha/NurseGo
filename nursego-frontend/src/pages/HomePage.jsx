@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { nursesService } from '../services/nurses.service';
 import './HomePage.css';
 
 const SERVICES_PREVIEW = [
@@ -34,6 +35,13 @@ export default function HomePage() {
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [dropOpen, setDropOpen] = useState(false);
   const dropRef = useRef(null);
+  const [featuredNurse, setFeaturedNurse] = useState(null);
+
+  useEffect(() => {
+    nursesService.getAll({ status: 'Active' })
+      .then(list => { if (list.length > 0) setFeaturedNurse(list[0]); })
+      .catch(() => {});
+  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -141,31 +149,64 @@ export default function HomePage() {
           </div>
           <div className="hero-visual fade-in">
             <div className="hero-card">
-              <div className="hcard-header">
-                <div className="hcard-avatar">👩‍⚕️</div>
-                <div>
-                  <div className="hcard-name">მარიამი</div>
-                  <div className="hcard-sub">სერტიფიცირებული ექთანი</div>
-                </div>
-                <span className="badge badge-active">
-                  <span className="status-dot dot-active" /> აქტიური
-                </span>
-              </div>
-              <div className="hcard-stats">
-                <div className="hcard-stat"><span>⭐</span> 4.9</div>
-                <div className="hcard-stat"><span>📋</span> 340 შეკვეთა</div>
-                <div className="hcard-stat"><span>📍</span> ვაკე</div>
-              </div>
-              <div className="hcard-services">
-                <span className="service-chip">💉 ინექცია</span>
-                <span className="service-chip">🧴 გადასხმა</span>
-                <span className="service-chip">🩹 ჭრილობა</span>
-              </div>
-              <div className="tracking-preview">
-                <div className="track-dot pulse" />
-                <span>3.2 კმ · ≈ 12 წუთი</span>
-                <div className="track-bar"><div className="track-fill" /></div>
-              </div>
+              {featuredNurse ? (
+                <>
+                  <div className="hcard-header">
+                    <div className="hcard-avatar">
+                      {featuredNurse.photoUrl
+                        ? <img src={featuredNurse.photoUrl} alt="" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                        : '👩‍⚕️'}
+                    </div>
+                    <div>
+                      <div className="hcard-name">{featuredNurse.name}</div>
+                      <div className="hcard-sub">სერტიფიცირებული ექთანი</div>
+                    </div>
+                    <span className="badge badge-active">
+                      <span className="status-dot dot-active" /> აქტიური
+                    </span>
+                  </div>
+                  <div className="hcard-stats">
+                    <div className="hcard-stat"><span>⭐</span> {featuredNurse.rating > 0 ? featuredNurse.rating.toFixed(1) : 'ახალი'}</div>
+                    <div className="hcard-stat"><span>📋</span> {featuredNurse.totalOrders} შეკვეთა</div>
+                    <div className="hcard-stat"><span>📍</span> {featuredNurse.district || (featuredNurse.districts || '').split(',')[0]}</div>
+                  </div>
+                  {featuredNurse.services && (
+                    <div className="hcard-services">
+                      {featuredNurse.services.split(',').slice(0, 3).map(s => (
+                        <span key={s} className="service-chip">{s.trim()}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="tracking-preview">
+                    <div className="track-dot pulse" />
+                    <span>ხელმისაწვდომია ახლავე</span>
+                    <div className="track-bar"><div className="track-fill" /></div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="hcard-header">
+                    <div className="hcard-avatar">👩‍⚕️</div>
+                    <div>
+                      <div className="hcard-name">ექთნები ემზადებიან</div>
+                      <div className="hcard-sub">მალე დარეგისტრირდებიან</div>
+                    </div>
+                    <span className="badge" style={{ background: '#f1f5f9', color: '#64748b', fontSize: 12 }}>
+                      მალე
+                    </span>
+                  </div>
+                  <div className="hcard-services">
+                    <span className="service-chip">💉 ინექცია</span>
+                    <span className="service-chip">🧴 გადასხმა</span>
+                    <span className="service-chip">🩹 ჭრილობა</span>
+                  </div>
+                  <div className="tracking-preview">
+                    <div className="track-dot" style={{ background: '#94a3b8' }} />
+                    <span>ახლა დარეგისტრირდი ექთნად</span>
+                    <div className="track-bar"><div className="track-fill" style={{ width: '30%', background: '#94a3b8' }} /></div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

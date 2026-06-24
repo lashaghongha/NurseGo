@@ -42,11 +42,11 @@ function OrderMap({ lat, lng, height = 200 }) {
 }
 
 const STATUS_FLOW = [
-  { status: 'Assigned',   label: 'მიღება',      next: 'EnRoute' },
-  { status: 'EnRoute',    label: 'მივდივარ',    next: 'Arrived' },
-  { status: 'Arrived',    label: 'მივედი',      next: 'InProgress' },
-  { status: 'InProgress', label: 'მიმდინარე',  next: 'Completed' },
-  { status: 'Completed',  label: 'დასრულდა',   next: null },
+  { status: 'Assigned',   label: '✅ მიღებულია',  next: 'EnRoute',   btn: '🚗 მივდივარ',    color: '#3b82f6' },
+  { status: 'EnRoute',    label: '🚗 გზაში ვარ',  next: 'Completed', btn: '✅ დასრულდა',    color: '#f59e0b' },
+  { status: 'Arrived',    label: '🏠 მივედი',      next: 'Completed', btn: '✅ დასრულდა',    color: '#f59e0b' },
+  { status: 'InProgress', label: '▶️ მიმდინარე',  next: 'Completed', btn: '✅ დასრულდა',    color: '#10b981' },
+  { status: 'Completed',  label: '✅ დასრულდა',   next: null,         btn: null,              color: '#10b981' },
 ];
 
 const STATUS_OPTIONS = [
@@ -412,37 +412,49 @@ export default function NurseDashboard() {
         </div>
 
         <div className="dash-body">
-          {activeOrder && (
-            <div className="active-order-card card">
-              <div className="ao-header">
-                <h3>🚗 აქტიური შეკვეთა #{activeOrder.id}</h3>
-                <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: 20 }}>{activeOrder.totalPrice}₾</span>
-              </div>
-              <div className="ao-details">
-                <div><strong>კლიენტი:</strong> {activeOrder.customer?.name || '—'}</div>
-                <div><strong>მომსახურება:</strong> {activeOrder.service?.icon} {activeOrder.service?.name}</div>
-                <div><strong>მისამართი:</strong> 📍 {activeOrder.district}, {activeOrder.address}</div>
-                {activeOrder.notes && <div className="ao-note">💬 {activeOrder.notes}</div>}
-                <OrderMap lat={activeOrder.latitude} lng={activeOrder.longitude} height={180} />
-                <OrderChat orderId={activeOrder.id} />
-              </div>
-              <div className="order-progress">
-                {STATUS_FLOW.map((s, i) => (
-                  <div key={s.status} className={`op-step ${i <= currentFlowStep ? 'done' : ''} ${i === currentFlowStep ? 'current' : ''}`}>
-                    <div className="ops-dot" />
-                    <div className="ops-label">{s.label}</div>
+          {activeOrder && (() => {
+            const flow = STATUS_FLOW.find(s => s.status === activeOrder.status);
+            return (
+              <div className="active-order-card card" style={{ borderLeft: `5px solid ${flow?.color || '#3b82f6'}`, marginBottom: 24 }}>
+                {/* Status Banner */}
+                <div style={{
+                  background: flow?.color || '#3b82f6', color: 'white',
+                  borderRadius: '8px 8px 0 0', margin: '-1px -1px 16px -1px',
+                  padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                  <span style={{ fontWeight: 800, fontSize: 18 }}>{flow?.label || activeOrder.status}</span>
+                  <span style={{ fontWeight: 900, fontSize: 22 }}>{activeOrder.totalPrice}₾</span>
+                </div>
+
+                <div className="ao-details">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                    <div><span style={{ color: 'var(--gray)', fontSize: 12 }}>კლიენტი</span><div style={{ fontWeight: 700 }}>{activeOrder.customer?.name || '—'}</div></div>
+                    <div><span style={{ color: 'var(--gray)', fontSize: 12 }}>მომსახურება</span><div style={{ fontWeight: 700 }}>{activeOrder.service?.icon} {activeOrder.service?.name}</div></div>
                   </div>
-                ))}
+                  <div style={{ background: '#f8fafc', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 14 }}>
+                    📍 <strong>{activeOrder.district}</strong>, {activeOrder.address}
+                  </div>
+                  {activeOrder.notes && <div className="ao-note">💬 {activeOrder.notes}</div>}
+                  <OrderMap lat={activeOrder.latitude} lng={activeOrder.longitude} height={180} />
+                  <OrderChat orderId={activeOrder.id} />
+                </div>
+
+                {flow?.btn && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={advanceStatus}
+                    style={{
+                      width: '100%', justifyContent: 'center', marginTop: 12,
+                      fontSize: 17, padding: '14px',
+                      background: flow.next === 'Completed' ? '#10b981' : undefined,
+                    }}
+                  >
+                    {flow.btn}
+                  </button>
+                )}
               </div>
-              {activeOrder.status !== 'Completed' && (
-                <button className="btn btn-primary" onClick={advanceStatus} style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}>
-                  {STATUS_FLOW.find(s => s.status === activeOrder.status)?.next === 'Completed'
-                    ? '✅ დასრულება'
-                    : `→ ${STATUS_FLOW.find(s => s.status === STATUS_FLOW.find(x => x.status === activeOrder.status)?.next)?.label || 'შემდეგი'}`}
-                </button>
-              )}
-            </div>
-          )}
+            );
+          })()}
 
           <div className="dash-columns">
             <div>

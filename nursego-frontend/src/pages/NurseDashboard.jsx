@@ -138,26 +138,8 @@ export default function NurseDashboard() {
                         : me.district ? [me.district] : [];
             setMyDistricts(dList);
 
-            if (navigator.geolocation) {
-              const sendLocation = (nId) => {
-                navigator.geolocation.getCurrentPosition(
-                  pos => { nursesService.updateLocation(nId, pos.coords.latitude, pos.coords.longitude).catch(() => {}); },
-                  () => { /* permission denied — stop silently */ },
-                  { timeout: 5000, maximumAge: 60000 }
-                );
-              };
-              // Only start GPS if permission is already granted (don't spam prompts)
-              if (navigator.permissions) {
-                navigator.permissions.query({ name: 'geolocation' }).then(result => {
-                  if (result.state === 'granted') {
-                    sendLocation(me.id);
-                    if (!window._nurseGpsInterval) {
-                      window._nurseGpsInterval = setInterval(() => sendLocation(me.id), 60000);
-                    }
-                  }
-                }).catch(() => {});
-              }
-            }
+            // GPS is started only when nurse taps EnRoute (via startEnRouteGps / watchPosition)
+            // No background GPS on dashboard load — permission prompt only when needed
           }
         } catch (profileErr) {
           console.error('Nurse profile load failed:', profileErr);
@@ -292,16 +274,24 @@ export default function NurseDashboard() {
 
   const startEnRouteGps = (nId) => {
     if (!navigator.geolocation) return;
-    const sendLoc = () => {
-      navigator.geolocation.getCurrentPosition(
-        pos => nursesService.updateLocation(nId, pos.coords.latitude, pos.coords.longitude).catch(() => {}),
-        () => {},
-        { timeout: 8000, maximumAge: 10000 }
-      );
-    };
-    sendLoc(); // immediate first send
-    clearInterval(window._nurseGpsInterval);
-    window._nurseGpsInterval = setInterval(sendLoc, 15000); // every 15s while EnRoute
+    // Stop any previous watcher
+    if (window._nurseGpsWatcher != null) {
+      navigator.geolocation.clearWatch(window._nurseGpsWatcher);
+      window._nurseGpsWatcher = null;
+    }
+    // watchPosition — asks permission once, then fires automatically on movement
+    window._nurseGpsWatcher = navigator.geolocation.watchPosition(
+      pos => nursesService.updateLocation(nId, pos.coords.latitude, pos.coords.longitude).catch(() => {}),
+      () => toast('📍 GPS ჩართეთ — კლიენტი ნახავს სად ხართ', { icon: '⚠️', duration: 4000 }),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+    );
+  };
+
+  const stopEnRouteGps = () => {
+    if (window._nurseGpsWatcher != null) {
+      navigator.geolocation.clearWatch(window._nurseGpsWatcher);
+      window._nurseGpsWatcher = null;
+    }
   };
 
   const advanceStatus = async () => {
@@ -312,21 +302,10 @@ export default function NurseDashboard() {
     try {
       await ordersService.updateStatus(activeOrder.id, flow.next);
       if (flow.next === 'EnRoute') {
-        // Ask for GPS permission when nurse starts driving
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            pos => {
-              nursesService.updateLocation(nurseId, pos.coords.latitude, pos.coords.longitude).catch(() => {});
-              startEnRouteGps(nurseId);
-            },
-            () => toast('📍 GPS ჩართეთ — კლიენტი ნახავს სად ხართ', { icon: '⚠️', duration: 4000 }),
-            { timeout: 10000 }
-          );
-        }
+        startEnRouteGps(nurseId); // permission asked once; browser remembers
       }
       if (flow.next === 'Completed') {
-        clearInterval(window._nurseGpsInterval);
-        window._nurseGpsInterval = null;
+        stopEnRouteGps();
         setHistoryOrders(prev => [{ ...activeOrder, status: 'Completed' }, ...prev]);
         setActiveOrder(null);
         toast.success('შეკვეთა დასრულდა! 🎉');

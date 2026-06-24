@@ -171,7 +171,7 @@ export default function AdminPanel() {
         licenseNumber:  nurseForm.licenseNumber || null,
         districts:      nurseForm.districts || null,
         services:       nurseForm.services || null,
-        experienceYears: Number(nurseForm.experienceYears),
+        experienceYears: nurseForm.experienceYears !== '' ? Number(nurseForm.experienceYears) : null,
         status:         nurseForm.status || null,
         isVerified:     nurseForm.isVerified,
       };
@@ -180,7 +180,9 @@ export default function AdminPanel() {
       setEditingNurse(null);
       toast.success('ექთნის ინფო განახლდა!');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'შეცდომა');
+      console.error('nurse update error:', err.response?.status, err.response?.data, err.message);
+      const msg = err.response?.data?.message || err.response?.data?.title || err.response?.data || err.message || 'შეცდომა';
+      toast.error(typeof msg === 'string' ? msg : `შეცდომა ${err.response?.status || ''}`);
     } finally {
       setNurseFormSaving(false);
     }

@@ -21,7 +21,10 @@ if (!string.IsNullOrEmpty(databaseUrl))
     {
         var uri = new Uri(databaseUrl.Replace("postgresql://", "https://").Replace("postgres://", "https://"));
         var userInfo = uri.UserInfo.Split(':');
-        npgsqlConnStr = $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={Uri.UnescapeDataString(userInfo.Length > 1 ? userInfo[1] : "")};SSL Mode=Disable;Timeout=10;Command Timeout=30";
+        // Internal Railway hostname: no SSL. Public proxy (rlwy.net etc.): require SSL.
+        var isInternal = uri.Host.EndsWith(".railway.internal", StringComparison.OrdinalIgnoreCase);
+        var sslMode = isInternal ? "Disable" : "Require";
+        npgsqlConnStr = $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={Uri.UnescapeDataString(userInfo.Length > 1 ? userInfo[1] : "")};SSL Mode={sslMode};Trust Server Certificate=true;Timeout=15;Command Timeout=30";
     }
     catch
     {

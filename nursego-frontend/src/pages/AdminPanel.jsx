@@ -125,6 +125,13 @@ export default function AdminPanel() {
     } catch { toast.error('შეცდომა'); }
   };
 
+  const adjustNurseRating = async (id, delta) => {
+    try {
+      const res = await api.post(`/nurses/${id}/adjust-rating`, { delta });
+      setNurses(prev => prev.map(n => n.id === id ? { ...n, rating: res.data.rating } : n));
+    } catch { toast.error('შეცდომა'); }
+  };
+
   const deleteUser = async (id, name) => {
     if (!window.confirm(`წაშლა: ${name}?`)) return;
     try {
@@ -595,7 +602,25 @@ export default function AdminPanel() {
                       <td className="col-hide-mobile">{n.district}</td>
                       <td className="col-hide-mobile">{n.totalOrders}</td>
                       <td className="col-hide-mobile" style={{ fontWeight: 700, color: 'var(--secondary)' }}>{n.realEarnings ?? '—'}₾</td>
-                      <td className="col-hide-mobile">{n.rating ? `⭐ ${n.rating.toFixed(1)}` : '—'}</td>
+                      <td className="col-hide-mobile">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <button
+                            className="btn btn-sm"
+                            style={{ padding: '2px 6px', fontSize: 13, lineHeight: 1, background: '#fee2e2', color: '#dc2626', border: 'none' }}
+                            onClick={() => adjustNurseRating(n.id, -0.5)}
+                            title="რეიტინგის შემცირება"
+                          >−</button>
+                          <span style={{ minWidth: 36, textAlign: 'center', fontSize: 12 }}>
+                            {n.rating ? `⭐ ${n.rating.toFixed(1)}` : '—'}
+                          </span>
+                          <button
+                            className="btn btn-sm"
+                            style={{ padding: '2px 6px', fontSize: 13, lineHeight: 1, background: '#dcfce7', color: '#15803d', border: 'none' }}
+                            onClick={() => adjustNurseRating(n.id, 0.5)}
+                            title="რეიტინგის გაზრდა"
+                          >+</button>
+                        </div>
+                      </td>
                       <td>
                         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                           <button className="btn btn-outline btn-sm" onClick={() => openNurseEdit(n)}>✏️</button>

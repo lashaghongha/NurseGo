@@ -231,6 +231,20 @@ public class NursesController : ControllerBase
 
         return Ok();
     }
+
+    [HttpPost("{id}/adjust-rating")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AdjustRating(int id, [FromBody] RatingAdjust req)
+    {
+        var nurse = await _db.Nurses.FindAsync(id);
+        if (nurse == null) return NotFound();
+
+        nurse.Rating = Math.Max(0, Math.Min(5, nurse.Rating + req.Delta));
+        await _db.SaveChangesAsync();
+
+        return Ok(new { rating = nurse.Rating });
+    }
 }
 
 public record LocationUpdate(double Lat, double Lng);
+public record RatingAdjust(decimal Delta);

@@ -55,6 +55,7 @@ export default function TrackingPage() {
   const [loading, setLoading]                 = useState(true);
   const [showRating, setShowRating]           = useState(false);
   const [rating, setRating]                   = useState(0);
+  const [hoverRating, setHoverRating]         = useState(0);
   const [comment, setComment]                 = useState('');
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [showCancel, setShowCancel]           = useState(false);
@@ -502,11 +503,17 @@ export default function TrackingPage() {
             </div>
             <div className="star-picker">
               {[1,2,3,4,5].map(s => (
-                <button key={s} className={`star-btn ${rating >= s ? 'filled' : ''}`} onClick={() => setRating(s)}>★</button>
+                <button
+                  key={s}
+                  className={`star-btn ${(hoverRating || rating) >= s ? 'filled' : ''}`}
+                  onClick={() => setRating(s)}
+                  onMouseEnter={() => setHoverRating(s)}
+                  onMouseLeave={() => setHoverRating(0)}
+                >★</button>
               ))}
             </div>
             <div className="rating-labels">
-              {['ძალიან ცუდი','ცუდი','საშუალო','კარგი','შესანიშნავი'][rating-1] || 'შეაფასე'}
+              {['ძალიან ცუდი','ცუდი','საშუალო','კარგი','შესანიშნავი'][(hoverRating || rating)-1] || 'შეაფასე'}
             </div>
             <textarea className="form-textarea" placeholder="კომენტარი..." value={comment}
               onChange={e => setComment(e.target.value)} rows={3} />

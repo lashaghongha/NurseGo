@@ -123,9 +123,8 @@ export default function NurseDashboard() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Get nurse profile
-        const nurses = await nursesService.getAll();
-        const me = nurses.find(n => n.userId === currentUser?.id || n.user?.id === currentUser?.id);
+        // Get nurse profile via authenticated endpoint (works for all statuses including Pending)
+        const me = await nursesService.getMe();
         if (me) {
           // Push notification ნებართვა
           if (pushService.isSupported() && !pushService.isGranted()) {
@@ -208,10 +207,7 @@ export default function NurseDashboard() {
       } catch { /* silent */ }
     };
 
-    const nurseIdPromise = nursesService.getAll().then(nurses => {
-      const me = nurses.find(n => n.userId === currentUser?.id || n.user?.id === currentUser?.id);
-      return me?.id;
-    }).catch(() => null);
+    const nurseIdPromise = nursesService.getMe().then(me => me?.id).catch(() => null);
     nurseIdPromise.then(initSignalR);
 
     return () => {

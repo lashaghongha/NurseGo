@@ -159,7 +159,8 @@ public record SendChatMessageRequest(string Text);
 public record RejectOrderRequest(string? Reason);
 public record CreateOrderRequest(int ServiceId, string Address, string District,
     bool IsNightTime, string? Notes, DateTime? ScheduledTime,
-    double? Latitude = null, double? Longitude = null, int? PreferredNurseId = null);
+    double? Latitude = null, double? Longitude = null, int? PreferredNurseId = null,
+    int[]? ExtraServiceIds = null);
 public record UpdateNurseStatusRequest(string Status);
 public record UpdateOrderStatusRequest(string Status);
 public record ConfirmReceiptRequest(string ServiceName, decimal PricePaid);

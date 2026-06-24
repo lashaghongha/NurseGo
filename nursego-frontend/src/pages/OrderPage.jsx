@@ -102,31 +102,19 @@ export default function OrderPage() {
     const effectiveDistrict = selectedDistrict
       || (pinCoords ? nearestDistrict(pinCoords.lat, pinCoords.lng) : DISTRICTS[0]);
     try {
-      // რამდენიმე სერვისი → ცალკე შეკვეთა თითოეულზე, პირველი ვაჩვენებთ tracking-ში
-      const basePayload = {
+      // ყველა სერვისი → ერთი შეკვეთა (პირველი = primary, დანარჩენი = extraServiceIds)
+      const order = await ordersService.create({
+        serviceId:       selectedServices[0].id,
+        extraServiceIds: selectedServices.slice(1).map(s => s.id),
         address,
-        district: effectiveDistrict.name,
-        isNightTime: isNight,
-        scheduledTime: selectedTime !== 'მიმდინარე (ASAP)' ? new Date().toISOString() : null,
-        latitude:  pinCoords?.lat ?? null,
-        longitude: pinCoords?.lng ?? null,
-        preferredNurseId: preferredNurseId,
-      };
-      const firstOrder = await ordersService.create({
-        ...basePayload,
-        serviceId: selectedServices[0].id,
-        notes: selectedServices.length > 1
-          ? `[დამატებული სერვისები: ${selectedServices.slice(1).map(s=>s.name).join(', ')}] ${notes}`
-          : notes,
+        district:        effectiveDistrict.name,
+        isNightTime:     isNight,
+        scheduledTime:   selectedTime !== 'მიმდინარე (ASAP)' ? new Date().toISOString() : null,
+        latitude:        pinCoords?.lat ?? null,
+        longitude:       pinCoords?.lng ?? null,
+        preferredNurseId,
+        notes,
       });
-      for (const svc of selectedServices.slice(1)) {
-        await ordersService.create({
-          ...basePayload,
-          serviceId: svc.id,
-          notes: `[ჯგუფური შეკვეთის ნაწილი #${firstOrder.id}] ${notes}`,
-        });
-      }
-      const order = firstOrder;
 
       if (paymentMethod === 'online') {
         // BOG Pay redirect

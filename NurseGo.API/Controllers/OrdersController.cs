@@ -40,9 +40,26 @@ public class OrdersController : ControllerBase
         var service = await _db.Services.FindAsync(req.ServiceId);
         if (service == null) return BadRequest(new { message = "მომსახურება ვერ მოიძებნა" });
 
-        var distSurcharge = PriceCalculator.GetDistrictSurcharge(req.District);
-        var nightSurcharge = PriceCalculator.GetNightSurcharge(service.Price, req.IsNightTime);
-        var total = service.Price + distSurcharge + nightSurcharge;
+        // Extra services (multi-service order)
+        decimal extraBasePrice = 0;
+        var extraNames = new List<string>();
+        if (req.ExtraServiceIds is { Length: > 0 })
+        {
+            var extras = await _db.Services
+                .Where(s => req.ExtraServiceIds.Contains(s.Id) && s.IsActive)
+                .ToListAsync();
+            extraBasePrice = extras.Sum(s => s.Price);
+            extraNames = extras.Select(s => s.Name).ToList();
+        }
+
+        var allBasePrice   = service.Price + extraBasePrice;
+        var distSurcharge  = PriceCalculator.GetDistrictSurcharge(req.District);
+        var nightSurcharge = PriceCalculator.GetNightSurcharge(allBasePrice, req.IsNightTime);
+        var total          = allBasePrice + distSurcharge + nightSurcharge;
+
+        var notesPrefix = extraNames.Count > 0
+            ? $"[+ {string.Join(", ", extraNames)}] "
+            : "";
 
         var order = new Order
         {
@@ -50,11 +67,11 @@ public class OrdersController : ControllerBase
             ServiceId = req.ServiceId,
             Address = req.Address,
             District = req.District,
-            BasePrice = service.Price,
+            BasePrice = allBasePrice,
             DistrictSurcharge = distSurcharge,
             NightSurcharge = nightSurcharge,
             TotalPrice = total,
-            Notes = req.Notes ?? "",
+            Notes = notesPrefix + (req.Notes ?? ""),
             IsNightTime = req.IsNightTime,
             ScheduledTime = req.ScheduledTime,
             Status = OrderStatus.Pending,

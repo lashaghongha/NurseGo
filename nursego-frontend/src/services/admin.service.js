@@ -22,6 +22,12 @@ export const adminService = {
   getPendingOrders: () =>
     api.get('/admin/orders/pending').then(r => r.data),
 
+  getPendingNurses: () =>
+    api.get('/admin/nurses/pending').then(r => r.data),
+
+  rejectNurse: (id) =>
+    api.delete(`/admin/nurses/${id}`).then(r => r.data),
+
   assignNurse: (orderId, nurseId) =>
     api.put(`/orders/${orderId}/assign/${nurseId}`).then(r => r.data),
 };

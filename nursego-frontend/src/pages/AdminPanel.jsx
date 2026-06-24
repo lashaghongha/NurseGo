@@ -32,6 +32,7 @@ export default function AdminPanel() {
   const [nurses, setNurses] = useState([]);
   const [orders, setOrders] = useState([]);
   const [pendingOrders, setPendingOrders] = useState([]);
+  const [pendingNurses, setPendingNurses] = useState([]);
   const [services, setServices] = useState([]);
   const [editingService, setEditingService] = useState(null); // null | 'new' | serviceObj
   const [serviceForm, setServiceForm] = useState({ name: '', icon: '💊', price: '', category: '', durationEstimate: '', isActive: true });
@@ -64,6 +65,7 @@ export default function AdminPanel() {
     }
     if (activeTab === 'pending') {
       adminService.getPendingOrders().then(setPendingOrders).catch(() => toast.error('Pending შეკვეთები ვერ ჩაიტვირთა'));
+      adminService.getPendingNurses().then(setPendingNurses).catch(() => {});
       if (nurses.length === 0)
         adminService.getAllNurses().then(setNurses).catch(() => {});
     }
@@ -79,9 +81,21 @@ export default function AdminPanel() {
   }, [activeTab]);
 
   const verifyNurse = async (id) => {
-    await adminService.verifyNurse(id);
-    setNurses(prev => prev.map(n => n.id === id ? { ...n, isVerified: true, status: 'Active' } : n));
-    toast.success('ექთანი დადასტურდა!');
+    try {
+      await adminService.verifyNurse(id);
+      setNurses(prev => prev.map(n => n.id === id ? { ...n, isVerified: true, status: 'Active' } : n));
+      setPendingNurses(prev => prev.filter(n => n.id !== id));
+      toast.success('✅ ექთანი დამტკიცდა და გააქტიურდა!');
+    } catch { toast.error('შეცდომა'); }
+  };
+
+  const rejectNurse = async (id, name) => {
+    if (!window.confirm(`უარყო ${name}-ის განაცხადი? ეს ამოშლის მათ ანგარიშს.`)) return;
+    try {
+      await adminService.rejectNurse(id);
+      setPendingNurses(prev => prev.filter(n => n.id !== id));
+      toast.success('განაცხადი უარყოფილია');
+    } catch { toast.error('შეცდომა'); }
   };
 
   const blockNurse = async (id) => {
@@ -174,13 +188,13 @@ export default function AdminPanel() {
           <button key={t.key} className={`admin-tab ${activeTab === t.key ? 'active' : ''}`}
             onClick={() => setActiveTab(t.key)}>
             {t.label}
-            {t.key === 'pending' && stats?.pendingOrders > 0 && (
+            {t.key === 'pending' && ((stats?.pendingOrders || 0) + (stats?.pendingNurses || 0)) > 0 && (
               <span style={{
                 background: '#ef4444', color: 'white', borderRadius: '50%',
                 width: 18, height: 18, fontSize: 11, fontWeight: 800,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 marginLeft: 6,
-              }}>{stats.pendingOrders}</span>
+              }}>{(stats?.pendingOrders || 0) + (stats?.pendingNurses || 0)}</span>
             )}
           </button>
         ))}
@@ -256,7 +270,70 @@ export default function AdminPanel() {
         {/* PENDING ORDERS */}
         {activeTab === 'pending' && (
           <div className="fade-in">
-            <h1 className="page-title">⚠️ მოუნიჭებელი შეკვეთები</h1>
+
+            {/* ── PENDING NURSES ── */}
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 14 }}>
+              👩‍⚕️ ახალი ექთნების განაცხადები
+              {pendingNurses.length > 0 && (
+                <span style={{ marginLeft: 8, background: '#dc2626', color: '#fff', borderRadius: 20, padding: '2px 10px', fontSize: 13 }}>
+                  {pendingNurses.length}
+                </span>
+              )}
+            </h2>
+
+            {pendingNurses.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: 28, color: 'var(--gray)', marginBottom: 24 }}>
+                <div style={{ fontSize: 32, marginBottom: 6 }}>✅</div>
+                <div>მოლოდინში ექთანი არ არის</div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: 14, marginBottom: 32 }}>
+                {pendingNurses.map(n => (
+                  <div key={n.id} className="card" style={{ borderLeft: '4px solid #f59e0b' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: 16 }}>👩‍⚕️ {n.name}</div>
+                        <div style={{ fontSize: 13, color: 'var(--gray)', marginTop: 4 }}>
+                          📧 {n.email} · 📞 {n.phone || '—'}
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--gray)', marginTop: 2 }}>
+                          🪪 ლიც: {n.licenseNumber} · 📅 გამოცდ: {n.experienceYears} წ.
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--gray)', marginTop: 2 }}>
+                          📍 {n.districts || n.district || '—'}
+                        </div>
+                        {n.services && (
+                          <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {n.services.split(',').map(s => (
+                              <span key={s} style={{ fontSize: 11, background: '#eff6ff', color: '#1d4ed8', padding: '2px 7px', borderRadius: 12 }}>
+                                {s.trim()}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 12, color: 'var(--gray)', marginTop: 6 }}>
+                          🕐 დარეგ: {new Date(n.createdAt).toLocaleString('ka-GE')}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <button className="btn btn-primary btn-sm" onClick={() => verifyNurse(n.id)}>
+                          ✅ დამტკიცება
+                        </button>
+                        <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }}
+                          onClick={() => rejectNurse(n.id, n.name)}>
+                          ❌ უარყოფა
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── PENDING ORDERS ── */}
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 14 }}>
+              📋 მოუნიჭებელი შეკვეთები
+            </h2>
             <p className="page-subtitle" style={{ marginBottom: 20 }}>
               ამ შეკვეთებს ჯერ არარ მიუღია ექთანი — ხელით მიანიჭე
             </p>

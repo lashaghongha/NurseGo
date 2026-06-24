@@ -112,6 +112,20 @@ public class AdminController : ControllerBase
         return Ok();
     }
 
+    // DELETE /api/admin/nurses/{id} — reject & delete unverified nurse application
+    [HttpDelete("nurses/{id}")]
+    public async Task<IActionResult> RejectNurse(int id)
+    {
+        var nurse = await _db.Nurses.Include(n => n.User).FirstOrDefaultAsync(n => n.Id == id);
+        if (nurse == null) return NotFound();
+        if (nurse.IsVerified) return BadRequest(new { message = "ვერიფიცირებული ექთნის წაშლა არ შეიძლება" });
+        // Remove nurse record and associated user account
+        if (nurse.User != null) _db.Users.Remove(nurse.User);
+        _db.Nurses.Remove(nurse);
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "განაცხადი უარყოფილია" });
+    }
+
     [HttpGet("orders")]
     public async Task<IActionResult> GetAllOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
@@ -124,6 +138,30 @@ public class AdminController : ControllerBase
             .Take(pageSize)
             .ToListAsync();
         return Ok(orders);
+    }
+
+    // GET /api/admin/nurses/pending — unverified nurses
+    [HttpGet("nurses/pending")]
+    public async Task<IActionResult> GetPendingNurses()
+    {
+        var nurses = await _db.Nurses
+            .Include(n => n.User)
+            .Where(n => !n.IsVerified)
+            .OrderBy(n => n.CreatedAt)
+            .Select(n => new {
+                n.Id, n.UserId,
+                name           = n.User!.Name,
+                email          = n.User.Email,
+                phone          = n.User.Phone,
+                n.LicenseNumber,
+                n.Districts, n.District,
+                n.ExperienceYears,
+                n.Services,
+                n.Status, n.IsVerified,
+                n.CreatedAt,
+            })
+            .ToListAsync();
+        return Ok(nurses);
     }
 
     // GET /api/admin/orders/pending — unassigned შეკვეთები

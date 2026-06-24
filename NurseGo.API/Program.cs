@@ -190,7 +190,7 @@ app.Use(async (context, next) =>
         context.Response.Headers["Access-Control-Allow-Origin"]      = origin;
         context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
         context.Response.Headers["Access-Control-Allow-Methods"]     = "GET,POST,PUT,DELETE,OPTIONS,PATCH";
-        context.Response.Headers["Access-Control-Allow-Headers"]     = "Content-Type,Authorization,X-Requested-With";
+        context.Response.Headers["Access-Control-Allow-Headers"]     = "Content-Type,Authorization,X-Requested-With,x-signalr-user-agent";
         context.Response.Headers["Access-Control-Max-Age"]           = "86400";
     }
     if (context.Request.Method == "OPTIONS")

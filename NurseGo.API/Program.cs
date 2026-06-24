@@ -181,7 +181,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// CORS პირველი — ყველა response-ზე header-ები
 app.UseCors("AllowFrontend");
+
+// გლობალური exception handler — 500-ზეც CORS header-ები შენარჩუნდება
+app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
+{
+    ctx.Response.StatusCode  = 500;
+    ctx.Response.ContentType = "application/json";
+    await ctx.Response.WriteAsync("{\"message\":\"სერვერის შეცდომა. სცადე მოგვიანებით.\"}");
+}));
+
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();

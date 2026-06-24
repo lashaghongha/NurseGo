@@ -107,6 +107,22 @@ export default function AdminPanel() {
     toast.success('ექთანი დაიბლოკა');
   };
 
+  const unblockNurse = async (id) => {
+    await adminService.unblockNurse(id);
+    setNurses(prev => prev.map(n => n.id === id ? { ...n, status: 'Active' } : n));
+    toast.success('ექთანი განიბლოკა');
+  };
+
+  const deleteNurse = async (id, name) => {
+    if (!window.confirm(`წაიშალოს ${name}? ეს სამუდამოდ წაშლის მათ ანგარიშს!`)) return;
+    try {
+      await adminService.deleteNurse(id);
+      setNurses(prev => prev.filter(n => n.id !== id));
+      setPendingNurses(prev => prev.filter(n => n.id !== id));
+      toast.success('ექთანი წაიშალა');
+    } catch { toast.error('შეცდომა'); }
+  };
+
   const deleteUser = async (id, name) => {
     if (!window.confirm(`წაშლა: ${name}?`)) return;
     try {
@@ -574,7 +590,13 @@ export default function AdminPanel() {
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           <button className="btn btn-outline btn-sm" onClick={() => openNurseEdit(n)}>✏️ რედ.</button>
                           {!n.isVerified && <button className="btn btn-secondary btn-sm" onClick={() => verifyNurse(n.id)}>✅ დადასტ.</button>}
-                          {n.status !== 'Blocked' && n.isVerified && <button className="btn btn-danger btn-sm" onClick={() => blockNurse(n.id)}>🚫 დაბლ.</button>}
+                          {n.status !== 'Blocked' && n.isVerified && (
+                            <button className="btn btn-danger btn-sm" onClick={() => blockNurse(n.id)}>🚫 დაბლ.</button>
+                          )}
+                          {n.status === 'Blocked' && (
+                            <button className="btn btn-sm" style={{ background: '#dcfce7', color: '#15803d', border: 'none' }} onClick={() => unblockNurse(n.id)}>🔓 განბლ.</button>
+                          )}
+                          <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }} onClick={() => deleteNurse(n.id, n.user?.name || n.name)}>🗑️</button>
                         </div>
                       </td>
                     </tr>

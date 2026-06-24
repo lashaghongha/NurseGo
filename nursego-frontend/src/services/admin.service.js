@@ -13,6 +13,12 @@ export const adminService = {
   blockNurse: (id) =>
     api.post(`/admin/nurses/${id}/block`).then(r => r.data),
 
+  unblockNurse: (id) =>
+    api.post(`/admin/nurses/${id}/unblock`).then(r => r.data),
+
+  deleteNurse: (id) =>
+    api.delete(`/admin/nurses/${id}`).then(r => r.data),
+
   getAllOrders: (page = 1) =>
     api.get('/admin/orders', { params: { page } }).then(r => r.data),
 

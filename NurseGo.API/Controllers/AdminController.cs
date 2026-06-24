@@ -113,6 +113,16 @@ public class AdminController : ControllerBase
         return Ok();
     }
 
+    [HttpPost("nurses/{id}/unblock")]
+    public async Task<IActionResult> UnblockNurse(int id)
+    {
+        var nurse = await _db.Nurses.FindAsync(id);
+        if (nurse == null) return NotFound();
+        nurse.Status = NurseStatus.Active;
+        await _db.SaveChangesAsync();
+        return Ok();
+    }
+
     // PUT /api/admin/nurses/{id} — update all nurse info + optional password change
     [HttpPut("nurses/{id}")]
     public async Task<IActionResult> UpdateNurse(int id, AdminUpdateNurseRequest req)
@@ -163,18 +173,17 @@ public class AdminController : ControllerBase
         });
     }
 
-    // DELETE /api/admin/nurses/{id} — reject & delete unverified nurse application
+    // DELETE /api/admin/nurses/{id} — delete nurse (and their user account)
     [HttpDelete("nurses/{id}")]
-    public async Task<IActionResult> RejectNurse(int id)
+    public async Task<IActionResult> DeleteNurse(int id)
     {
         var nurse = await _db.Nurses.Include(n => n.User).FirstOrDefaultAsync(n => n.Id == id);
         if (nurse == null) return NotFound();
-        if (nurse.IsVerified) return BadRequest(new { message = "ვერიფიცირებული ექთნის წაშლა არ შეიძლება" });
         // Remove nurse record and associated user account
         if (nurse.User != null) _db.Users.Remove(nurse.User);
         _db.Nurses.Remove(nurse);
         await _db.SaveChangesAsync();
-        return Ok(new { message = "განაცხადი უარყოფილია" });
+        return Ok(new { message = "ექთანი წაიშალა" });
     }
 
     [HttpGet("orders")]

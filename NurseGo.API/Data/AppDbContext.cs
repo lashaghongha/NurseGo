@@ -20,6 +20,10 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
+        // Use dedicated schema on shared PostgreSQL instances to avoid table name conflicts
+        if (Database.IsNpgsql())
+            mb.HasDefaultSchema("nursego");
+
         mb.Entity<Service>().HasData(
             new Service { Id = 1, Name = "კუნთში ინექცია", Icon = "💉", Price = 20, Category = "ინექცია", DurationEstimate = "30 წთ" },
             new Service { Id = 2, Name = "ვენაში ინექცია", Icon = "🩸", Price = 25, Category = "ინექცია", DurationEstimate = "30 წთ" },

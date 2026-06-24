@@ -13,9 +13,24 @@ var builder = WebApplication.CreateBuilder(args);
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 if (!string.IsNullOrEmpty(databaseUrl))
 {
-    // Railway PostgreSQL — DATABASE_URL format: postgresql://user:pass@host:port/db
+    // Railway PostgreSQL — convert postgresql:// URI to Npgsql connection string
+    // Npgsql URI support: postgresql://user:pass@host:port/db
+    // Add SSL=disable for Railway internal (postgres.railway.internal) connections
+    string npgsqlConnStr;
+    try
+    {
+        var uri = new Uri(databaseUrl.Replace("postgresql://", "https://").Replace("postgres://", "https://"));
+        var userInfo = uri.UserInfo.Split(':');
+        npgsqlConnStr = $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={Uri.UnescapeDataString(userInfo.Length > 1 ? userInfo[1] : "")};SSL Mode=Disable;Timeout=10;Command Timeout=30";
+    }
+    catch
+    {
+        // fallback: pass raw URL and hope Npgsql can parse it
+        npgsqlConnStr = databaseUrl;
+    }
+    Console.WriteLine($"[DB] Connecting to PostgreSQL: {new Uri(databaseUrl.Replace("postgresql://", "https://").Replace("postgres://", "https://")).Host}");
     builder.Services.AddDbContext<AppDbContext>(opt =>
-        opt.UseNpgsql(databaseUrl));
+        opt.UseNpgsql(npgsqlConnStr));
 }
 else
 {

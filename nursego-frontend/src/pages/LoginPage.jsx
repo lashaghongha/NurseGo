@@ -9,6 +9,11 @@ import './LoginPage.css';
 export default function LoginPage() {
   const [params] = useSearchParams();
   const [isRegister, setIsRegister] = useState(params.get('register') === 'true');
+
+  // sync with URL when navbar buttons change the route without unmounting
+  React.useEffect(() => {
+    setIsRegister(params.get('register') === 'true');
+  }, [params]);
   const [role, setRole] = useState(params.get('role') || 'customer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

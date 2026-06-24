@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { adminService } from '../services/admin.service';
 import { servicesService } from '../services/services.service';
@@ -43,6 +43,8 @@ export default function AdminPanel() {
   const [editingNurse, setEditingNurse] = useState(null); // nurse obj or null
   const [nurseForm, setNurseForm] = useState({});
   const [nurseFormSaving, setNurseFormSaving] = useState(false);
+  const sidebarRef = useRef(null);
+  const activeTabRef = useRef(null);
 
   useEffect(() => {
     Promise.all([
@@ -247,11 +249,17 @@ export default function AdminPanel() {
 
   return (
     <div className="admin-page">
-      <div className="admin-sidebar">
+      <div className="admin-sidebar" ref={sidebarRef}>
         <div className="admin-brand">🏥 NurseGo <span>Admin</span></div>
         {TABS.map(t => (
-          <button key={t.key} className={`admin-tab ${activeTab === t.key ? 'active' : ''}`}
-            onClick={() => setActiveTab(t.key)}>
+          <button key={t.key}
+            ref={activeTab === t.key ? activeTabRef : null}
+            className={`admin-tab ${activeTab === t.key ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab(t.key);
+              // scroll active tab into view on mobile
+              setTimeout(() => activeTabRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 50);
+            }}>
             {t.label}
             {t.key === 'pending' && ((stats?.pendingOrders || 0) + (stats?.pendingNurses || 0)) > 0 && (
               <span style={{

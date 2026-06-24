@@ -151,6 +151,23 @@ try
 
     foreach (var sql in columnMigrations)
         try { db.Database.ExecuteSqlRaw(sql); } catch { }
+
+    // ─── Seed: Admin user (idempotent) ───────────────────────────────────────
+    var adminEmail = "admin@citymed.ge";
+    if (!db.Users.Any(u => u.Role == NurseGo.API.Models.UserRole.Admin))
+    {
+        db.Users.Add(new NurseGo.API.Models.User
+        {
+            Name         = "Admin",
+            Email        = adminEmail,
+            Phone        = "+995000000000",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin2025!"),
+            Role         = NurseGo.API.Models.UserRole.Admin,
+            CreatedAt    = DateTime.UtcNow,
+        });
+        db.SaveChanges();
+        Console.WriteLine($"[SEED] Admin user created: {adminEmail}");
+    }
 }
 catch (Exception ex)
 {

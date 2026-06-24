@@ -144,6 +144,38 @@ public class AdminController : ControllerBase
         return Ok(docs);
     }
 
+    [HttpGet("users")]
+    public async Task<IActionResult> GetAllUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    {
+        var users = await _db.Users
+            .Where(u => u.Role == UserRole.Customer)
+            .OrderByDescending(u => u.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new
+            {
+                u.Id, u.Name, u.Email, u.Phone,
+                role = u.Role.ToString(),
+                u.CreatedAt,
+                totalOrders = _db.Orders.Count(o => o.CustomerId == u.Id),
+            })
+            .ToListAsync();
+
+        var total = await _db.Users.CountAsync(u => u.Role == UserRole.Customer);
+        return Ok(new { users, total });
+    }
+
+    [HttpDelete("users/{id}")]
+    public async Task<IActionResult> DeleteUser(int id)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user == null) return NotFound();
+        if (user.Role == UserRole.Admin) return BadRequest(new { message = "Admin-ის წაშლა შეუძლებელია" });
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+        return Ok();
+    }
+
     [HttpGet("revenue/monthly")]
     public async Task<IActionResult> GetMonthlyRevenue()
     {

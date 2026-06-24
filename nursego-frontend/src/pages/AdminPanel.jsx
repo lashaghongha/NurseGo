@@ -19,6 +19,7 @@ const TABS = [
   { key: 'dashboard', label: '📊 დაფა' },
   { key: 'pending',   label: '⚠️ Pending' },
   { key: 'nurses',    label: '👩‍⚕️ ექთნები' },
+  { key: 'users',     label: '👤 მომხმარებლები' },
   { key: 'orders',    label: '📋 შეკვეთები' },
   { key: 'prices',    label: '💰 ფასები' },
   { key: 'ratings',   label: '⭐ შეფასებები' },
@@ -34,6 +35,7 @@ export default function AdminPanel() {
   const [prices, setPrices] = useState([]);
   const [editingPrice, setEditingPrice] = useState(null);
   const [ratings, setRatings] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assigningOrder, setAssigningOrder] = useState(null); // orderId რომელსაც ვანიჭებთ
 
@@ -70,6 +72,9 @@ export default function AdminPanel() {
     if (activeTab === 'ratings' && ratings.length === 0) {
       api.get('/ratings').then(r => setRatings(r.data)).catch(() => toast.error('შეფასებები ვერ ჩაიტვირთა'));
     }
+    if (activeTab === 'users' && users.length === 0) {
+      api.get('/admin/users').then(r => setUsers(r.data.users || [])).catch(() => toast.error('მომხმარებლები ვერ ჩაიტვირთა'));
+    }
   }, [activeTab]);
 
   const verifyNurse = async (id) => {
@@ -82,6 +87,15 @@ export default function AdminPanel() {
     await adminService.blockNurse(id);
     setNurses(prev => prev.map(n => n.id === id ? { ...n, status: 'Blocked' } : n));
     toast.success('ექთანი დაიბლოკა');
+  };
+
+  const deleteUser = async (id, name) => {
+    if (!window.confirm(`წაშლა: ${name}?`)) return;
+    try {
+      await api.delete(`/admin/users/${id}`);
+      setUsers(prev => prev.filter(u => u.id !== id));
+      toast.success('მომხმარებელი წაიშალა');
+    } catch { toast.error('შეცდომა'); }
   };
 
   const assignNurse = async (orderId, nurseId) => {
@@ -390,6 +404,42 @@ export default function AdminPanel() {
                       <td style={{ fontSize: 13, color: 'var(--gray)', maxWidth: 200 }}>{r.comment || '—'}</td>
                       <td style={{ color: 'var(--gray)', fontSize: 13 }}>#{r.orderId}</td>
                       <td style={{ fontSize: 12, color: 'var(--gray)' }}>{new Date(r.createdAt).toLocaleDateString('ka-GE')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'users' && (
+          <div className="fade-in">
+            <h1 className="page-title">მომხმარებლები</h1>
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr><th>სახელი</th><th>მეილი</th><th>ტელეფონი</th><th>შეკვეთები</th><th>რეგ. თარიღი</th><th>მოქმედება</th></tr>
+                </thead>
+                <tbody>
+                  {users.length === 0 ? (
+                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--gray)', padding: 32 }}>მომხმარებელი ჯერ არ არის</td></tr>
+                  ) : users.map(u => (
+                    <tr key={u.id}>
+                      <td style={{ fontWeight: 600 }}>👤 {u.name}</td>
+                      <td style={{ fontSize: 13 }}>{u.email}</td>
+                      <td style={{ fontSize: 13, color: 'var(--gray)' }}>{u.phone || '—'}</td>
+                      <td>
+                        <span style={{ background: '#eff6ff', color: '#1d4ed8', borderRadius: 6, padding: '2px 8px', fontSize: 13, fontWeight: 600 }}>
+                          {u.totalOrders} შეკვ.
+                        </span>
+                      </td>
+                      <td style={{ fontSize: 12, color: 'var(--gray)' }}>{new Date(u.createdAt).toLocaleDateString('ka-GE')}</td>
+                      <td>
+                        <button
+                          onClick={() => deleteUser(u.id, u.name)}
+                          style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+                        >🗑 წაშლა</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

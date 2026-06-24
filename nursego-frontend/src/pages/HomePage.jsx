@@ -77,74 +77,13 @@ export default function HomePage() {
               პროფესიონალი ექთნები თქვენს სახლში — ინექციები, გადასხმები,
               ჭრილობის მოვლა, მოხუცების პატრონაჟი და სხვა.
             </p>
-            <form className="hero-search" onSubmit={handleSearch}>
-              {/* Custom Service Dropdown */}
-              <div className="svc-dropdown" ref={dropRef}>
-                <button
-                  type="button"
-                  className={`svc-trigger ${dropOpen ? 'open' : ''} ${selectedSvc ? 'has-value' : ''}`}
-                  onClick={() => setDropOpen(o => !o)}
-                >
-                  <span className="svc-trigger-inner">
-                    {selectedSvc
-                      ? <><span className="svc-trigger-icon">{selectedSvc.icon}</span><span className="svc-trigger-name">{selectedSvc.name}</span><span className="svc-trigger-price">{selectedSvc.price}₾</span></>
-                      : <><span className="svc-trigger-placeholder">💊 მომსახურება...</span></>
-                    }
-                  </span>
-                  <span className="svc-chevron">{dropOpen ? '▲' : '▼'}</span>
-                </button>
-                {dropOpen && (
-                  <div className="svc-menu">
-                    <button
-                      type="button"
-                      className={`svc-option ${!selectedService ? 'selected' : ''}`}
-                      onClick={() => { setSelectedService(''); setDropOpen(false); }}
-                    >
-                      <span className="svc-opt-icon">🏥</span>
-                      <span className="svc-opt-info">
-                        <span className="svc-opt-name">ნებისმიერი მომსახურება</span>
-                      </span>
-                    </button>
-                    {SERVICES_PREVIEW.map(s => (
-                      <button
-                        key={s.name}
-                        type="button"
-                        className={`svc-option ${selectedService === s.name ? 'selected' : ''}`}
-                        onClick={() => { setSelectedService(s.name); setDropOpen(false); }}
-                      >
-                        <span className="svc-opt-icon">{s.icon}</span>
-                        <span className="svc-opt-info">
-                          <span className="svc-opt-name">{s.name}</span>
-                          <span className="svc-opt-meta">⏱ {s.time}</span>
-                        </span>
-                        <span className="svc-opt-price">{s.price}₾</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <input
-                type="text"
-                placeholder="📍 მისამართი, თბილისი..."
-                value={address}
-                onChange={e => setAddress(e.target.value)}
-                className="search-input"
-              />
-              <button type="submit" className="btn btn-primary search-btn">
-                გამოძახება →
-              </button>
-            </form>
-            <div className="hero-tags">
-              {DISTRICTS.slice(0, 5).map(d => (
-                <button
-                  key={d}
-                  type="button"
-                  className={`district-tag ${selectedDistrict === d ? 'active' : ''}`}
-                  onClick={() => setSelectedDistrict(prev => prev === d ? '' : d)}
-                >{d}</button>
-              ))}
-              <Link to="/services" className="district-tag">და სხვა...</Link>
+            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+              <Link to="/services" className="btn btn-primary" style={{ fontSize: 16, padding: '12px 28px' }}>
+                მომსახურებები →
+              </Link>
+              <Link to="/login?register=true&role=nurse" className="btn btn-outline" style={{ fontSize: 16, padding: '12px 28px' }}>
+                ექთნად დარეგისტრირება
+              </Link>
             </div>
           </div>
           <div className="hero-visual fade-in">
@@ -212,19 +151,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="stats-bar">
-        <div className="container stats-inner">
-          {STATS.map((s, i) => (
-            <div key={i} className="stat-item">
-              <div className="stat-icon">{s.icon}</div>
-              <div className="stat-value">{s.value}</div>
-              <div className="stat-label">{s.label}</div>
-              {i < STATS.length - 1 && <div className="stat-divider" />}
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Stats — დროებით დამალულია */}
 
       {/* Services Preview */}
       <section className="section services-section">

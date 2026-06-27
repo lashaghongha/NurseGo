@@ -65,7 +65,7 @@ export default function OrderChat({ orderId }) {
           transition: 'all 0.2s',
         }}
       >
-        💬 {open ? 'მიომწერის დახურვა' : 'მიომწერე'}
+        💬 {open ? 'ჩატის დახურვა' : 'მიწერე'}
         {unread > 0 && (
           <span style={{
             background: '#dc2626', color: 'white', borderRadius: 10,

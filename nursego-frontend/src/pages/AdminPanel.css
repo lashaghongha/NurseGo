@@ -210,7 +210,7 @@
   .admin-tab { font-size: 12px; padding: 7px 10px; }
 
   /* Stat cards: 2×2 grid */
-  .grid-4 { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .admin-content .grid-4 { grid-template-columns: 1fr 1fr; gap: 10px; }
   .sc-val { font-size: 24px; }
 
   /* Prices: single column */

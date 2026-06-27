@@ -259,7 +259,7 @@ export default function AdminPanel() {
     <div className="admin-page">
       {/* Mobile hamburger bar */}
       <div className="admin-mobile-bar">
-        <span className="admin-mobile-title">🏥 NurseGo <span className="admin-mobile-badge">Admin</span></span>
+        <span className="admin-mobile-title">🏥 Citymed <span className="admin-mobile-badge">Admin</span></span>
         <button className="admin-hamburger" onClick={() => setMenuOpen(o => !o)}>
           {menuOpen ? '✕' : '☰'}
         </button>
@@ -269,7 +269,7 @@ export default function AdminPanel() {
       {menuOpen && <div className="admin-menu-overlay" onClick={() => setMenuOpen(false)} />}
 
       <div className={`admin-sidebar ${menuOpen ? 'open' : ''}`} ref={sidebarRef}>
-        <div className="admin-brand">🏥 NurseGo <span>Admin</span></div>
+        <div className="admin-brand">🏥 Citymed <span>Admin</span></div>
         {TABS.map(t => (
           <button key={t.key}
             ref={activeTab === t.key ? activeTabRef : null}

@@ -1,4 +1,4 @@
-// NurseGo Service Worker — Browser Push Notifications
+// Citymed Service Worker — Browser Push Notifications
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 
@@ -6,8 +6,8 @@ self.addEventListener('push', event => {
   if (!event.data) return;
   let data;
   try { data = event.data.json(); }
-  catch { data = { title: 'NurseGo', body: event.data.text() }; }
-  const title = data.title || 'NurseGo';
+  catch { data = { title: 'Citymed', body: event.data.text() }; }
+  const title = data.title || 'Citymed';
   const options = {
     body: data.body || '',
     icon: '/logo192.png',

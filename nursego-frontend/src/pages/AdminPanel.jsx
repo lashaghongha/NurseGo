@@ -43,6 +43,7 @@ export default function AdminPanel() {
   const [editingNurse, setEditingNurse] = useState(null); // nurse obj or null
   const [nurseForm, setNurseForm] = useState({});
   const [nurseFormSaving, setNurseFormSaving] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const sidebarRef = useRef(null);
   const activeTabRef = useRef(null);
 
@@ -256,7 +257,18 @@ export default function AdminPanel() {
 
   return (
     <div className="admin-page">
-      <div className="admin-sidebar" ref={sidebarRef}>
+      {/* Mobile hamburger bar */}
+      <div className="admin-mobile-bar">
+        <span className="admin-mobile-title">🏥 NurseGo <span className="admin-mobile-badge">Admin</span></span>
+        <button className="admin-hamburger" onClick={() => setMenuOpen(o => !o)}>
+          {menuOpen ? '✕' : '☰'}
+        </button>
+      </div>
+
+      {/* Overlay when menu open on mobile */}
+      {menuOpen && <div className="admin-menu-overlay" onClick={() => setMenuOpen(false)} />}
+
+      <div className={`admin-sidebar ${menuOpen ? 'open' : ''}`} ref={sidebarRef}>
         <div className="admin-brand">🏥 NurseGo <span>Admin</span></div>
         {TABS.map(t => (
           <button key={t.key}
@@ -264,7 +276,7 @@ export default function AdminPanel() {
             className={`admin-tab ${activeTab === t.key ? 'active' : ''}`}
             onClick={() => {
               setActiveTab(t.key);
-              // scroll active tab into view on mobile
+              setMenuOpen(false);
               setTimeout(() => activeTabRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 50);
             }}>
             {t.label}

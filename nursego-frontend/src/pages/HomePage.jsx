@@ -77,11 +77,11 @@ export default function HomePage() {
               პროფესიონალი ექთნები თქვენს სახლში — ინექციები, გადასხმები,
               ჭრილობის მოვლა, მოხუცების პატრონაჟი და სხვა.
             </p>
-            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-              <Link to="/services" className="btn btn-primary" style={{ fontSize: 16, padding: '12px 28px' }}>
+            <div className="hero-actions">
+              <Link to="/services" className="btn btn-primary hero-action-btn">
                 მომსახურებები →
               </Link>
-              <Link to="/login?register=true&role=nurse" className="btn btn-outline" style={{ fontSize: 16, padding: '12px 28px' }}>
+              <Link to="/login?register=true&role=nurse" className="btn btn-outline hero-action-btn">
                 ექთნად დარეგისტრირება
               </Link>
             </div>

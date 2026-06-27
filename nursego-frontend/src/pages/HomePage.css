@@ -80,6 +80,18 @@
   line-height: 1.6;
   margin-bottom: 32px;
   max-width: 480px;
+  word-break: break-word;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+.hero-action-btn {
+  font-size: 16px;
+  padding: 12px 28px;
 }
 
 .hero-search {
@@ -413,8 +425,10 @@
 
 @media (max-width: 640px) {
   .hero { min-height: auto; padding: 24px 0 32px; }
-  .hero-title { font-size: 28px; }
-  .hero-subtitle { font-size: 15px; margin-bottom: 20px; }
+  .hero-title { font-size: 26px; }
+  .hero-subtitle { font-size: 15px; margin-bottom: 20px; max-width: 100%; }
+  .hero-actions { flex-direction: column; }
+  .hero-action-btn { width: 100%; justify-content: center; font-size: 15px; padding: 13px 20px; }
   .hero-search { flex-direction: column; gap: 8px; padding: 12px; }
   .svc-dropdown { min-width: 0; }
   .svc-trigger { font-size: 15px; padding: 12px 14px; }

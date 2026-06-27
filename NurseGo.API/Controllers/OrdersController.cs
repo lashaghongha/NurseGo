@@ -201,9 +201,38 @@ public class OrdersController : ControllerBase
             .Include(o => o.Service)
             .FirstOrDefaultAsync(o => o.Id == id && o.Status == OrderStatus.Pending && o.NurseId == null);
 
-
         if (order == null)
             return BadRequest(new { message = "შეკვეთა უკვე მიღებულია სხვა ექთნის მიერ" });
+
+        // ─── განრიგის კონფლიქტის შემოწმება ─────────────────────────────────────
+        var activeOrders = await _db.Orders
+            .Include(o => o.Service)
+            .Where(o => o.NurseId == nurse.Id &&
+                        (o.Status == OrderStatus.Assigned ||
+                         o.Status == OrderStatus.InProgress ||
+                         o.Status == OrderStatus.EnRoute))
+            .ToListAsync();
+
+        if (activeOrders.Count > 0)
+        {
+            var orderPendingMinutes = (DateTime.UtcNow - order.CreatedAt).TotalMinutes;
+
+            // თუ შეკვეთა 5+ წუთია ელოდება (სხვამ ვერ აიღო) — ნებისმიერ ექთანს შეუძლია
+            if (orderPendingMinutes < 5)
+            {
+                // შევამოწმოთ კონფლიქტი: არსებული შეკვეთის სავარაუდო დასრულება + 15 წთ ბუფერი
+                bool hasConflict = activeOrders.Any(active =>
+                {
+                    int durationMin = ParseDurationMinutes(active.Service?.DurationEstimate) + 15;
+                    var estimatedEnd = active.CreatedAt.AddMinutes(durationMin);
+                    return estimatedEnd > DateTime.UtcNow;
+                });
+
+                if (hasConflict)
+                    return BadRequest(new { message = "თქვენ გაქვთ აქტიური შეკვეთა. შეკვეთებს შორის მინიმუმ 15 წუთიანი დაშორება საჭიროა." });
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────────
 
         order.NurseId    = nurse.Id;
         order.Status     = OrderStatus.Assigned;
@@ -491,5 +520,23 @@ public class OrdersController : ControllerBase
         var rating = await _db.Ratings.FirstOrDefaultAsync(r => r.OrderId == id);
         if (rating == null) return Ok(null);
         return Ok(new { rating.Stars, rating.Comment, rating.CreatedAt });
+    }
+
+    // ─── Helper: parse "30 წთ" / "1 სთ" → minutes ───────────────────────────
+    private static int ParseDurationMinutes(string? estimate)
+    {
+        if (string.IsNullOrWhiteSpace(estimate)) return 60; // default 60 min
+        var lower = estimate.ToLower();
+        // სთ / hour
+        if (lower.Contains("სთ") || lower.Contains("hour") || lower.Contains("hr"))
+        {
+            var num = new string(lower.Where(c => char.IsDigit(c) || c == '.').ToArray());
+            if (double.TryParse(num, out var h)) return (int)(h * 60);
+            return 60;
+        }
+        // წთ / min
+        var digits = new string(lower.Where(char.IsDigit).ToArray());
+        if (int.TryParse(digits, out var m)) return m;
+        return 60;
     }
 }

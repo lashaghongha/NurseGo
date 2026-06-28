@@ -148,16 +148,34 @@ try
             "ALTER TABLE Nurses ADD COLUMN ManualEarnings REAL",
         };
 
+    // Detect actual table name casing used by EF Core in this PostgreSQL instance
+    string nursesTable = "Nurses", ordersTable = "Orders";
+    if (db.Database.IsNpgsql())
+    {
+        try
+        {
+            var tables = db.Database.SqlQueryRaw<string>(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name ILIKE 'nurses'")
+                .ToList();
+            if (tables.Count > 0) nursesTable = tables[0];
+            Console.WriteLine($"[MIGRATION] Detected nurses table: {nursesTable}");
+        }
+        catch (Exception ex) { Console.WriteLine($"[MIGRATION] Table detect failed: {ex.Message}"); }
+    }
+
     foreach (var sql in columnMigrations)
     {
-        try { db.Database.ExecuteSqlRaw(sql); Console.WriteLine($"[MIGRATION OK] {sql[..Math.Min(80, sql.Length)]}"); }
-        catch (Exception ex) {
-            Console.WriteLine($"[MIGRATION SKIP] {ex.Message[..Math.Min(120, ex.Message.Length)]}");
-            // Retry with lowercase table names (in case Npgsql created them lowercase)
-            var sqlLower = sql.Replace("\"Nurses\"", "nurses").Replace("\"Orders\"", "orders");
-            if (sqlLower != sql)
-                try { db.Database.ExecuteSqlRaw(sqlLower); Console.WriteLine($"[MIGRATION OK lowercase] {sqlLower[..Math.Min(80, sqlLower.Length)]}"); }
-                catch { }
+        var actualSql = sql
+            .Replace("\"Nurses\"", $"\"{nursesTable}\"")
+            .Replace("\"Orders\"", $"\"{ordersTable}\"");
+        try
+        {
+            db.Database.ExecuteSqlRaw(actualSql);
+            Console.WriteLine($"[MIGRATION OK] {actualSql[..Math.Min(80, actualSql.Length)]}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MIGRATION FAIL] {ex.Message[..Math.Min(150, ex.Message.Length)]}");
         }
     }
 

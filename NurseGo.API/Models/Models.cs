@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace NurseGo.API.Models;
 
 public enum NurseStatus { Active, Busy, Vacation, Offline, Pending, Blocked }
@@ -35,7 +37,7 @@ public class Nurse
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public string PhotoUrl { get; set; } = "";
-    public decimal? ManualEarnings { get; set; }
+    [NotMapped] public decimal? ManualEarnings { get; set; }
 }
 
 public class Service

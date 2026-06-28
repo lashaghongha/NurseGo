@@ -149,13 +149,28 @@ try
         };
 
     foreach (var sql in columnMigrations)
-        try { db.Database.ExecuteSqlRaw(sql); } catch { }
+    {
+        try { db.Database.ExecuteSqlRaw(sql); Console.WriteLine($"[MIGRATION OK] {sql[..Math.Min(80, sql.Length)]}"); }
+        catch (Exception ex) {
+            Console.WriteLine($"[MIGRATION SKIP] {ex.Message[..Math.Min(120, ex.Message.Length)]}");
+            // Retry with lowercase table names (in case Npgsql created them lowercase)
+            var sqlLower = sql.Replace("\"Nurses\"", "nurses").Replace("\"Orders\"", "orders");
+            if (sqlLower != sql)
+                try { db.Database.ExecuteSqlRaw(sqlLower); Console.WriteLine($"[MIGRATION OK lowercase] {sqlLower[..Math.Min(80, sqlLower.Length)]}"); }
+                catch { }
+        }
+    }
 
     // ─── DistrictPrices table ────────────────────────────────────────────────
     var districtTableSql = db.Database.IsNpgsql()
         ? "CREATE TABLE IF NOT EXISTS \"DistrictPrices\" (\"Id\" SERIAL PRIMARY KEY, \"Name\" TEXT NOT NULL DEFAULT '', \"Surcharge\" NUMERIC NOT NULL DEFAULT 0)"
         : "CREATE TABLE IF NOT EXISTS DistrictPrices (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL DEFAULT '', Surcharge REAL NOT NULL DEFAULT 0)";
-    try { db.Database.ExecuteSqlRaw(districtTableSql); } catch { }
+    try { db.Database.ExecuteSqlRaw(districtTableSql); Console.WriteLine("[MIGRATION OK] DistrictPrices table"); }
+    catch (Exception ex) {
+        Console.WriteLine($"[MIGRATION SKIP DistrictPrices] {ex.Message[..Math.Min(120, ex.Message.Length)]}");
+        // Retry lowercase
+        try { db.Database.ExecuteSqlRaw(districtTableSql.Replace("\"DistrictPrices\"", "district_prices")); } catch { }
+    }
 
     // ─── Seed: District Prices (all 5 GEL) ──────────────────────────────────
     var allDistricts = new[] { "ვაკე", "საბურთალო", "გლდანი", "დიდუბე", "ნაძალადევი", "ისანი", "სამგორი", "კრწანისი", "დიღომი", "ვარკეთილი" };

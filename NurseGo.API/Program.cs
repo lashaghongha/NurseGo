@@ -153,7 +153,7 @@ try
 
     // ─── DistrictPrices table ────────────────────────────────────────────────
     var districtTableSql = db.Database.IsNpgsql()
-        ? "CREATE TABLE IF NOT EXISTS nursego.\"DistrictPrices\" (\"Id\" SERIAL PRIMARY KEY, \"Name\" TEXT NOT NULL DEFAULT '', \"Surcharge\" NUMERIC NOT NULL DEFAULT 0)"
+        ? "CREATE TABLE IF NOT EXISTS \"DistrictPrices\" (\"Id\" SERIAL PRIMARY KEY, \"Name\" TEXT NOT NULL DEFAULT '', \"Surcharge\" NUMERIC NOT NULL DEFAULT 0)"
         : "CREATE TABLE IF NOT EXISTS DistrictPrices (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL DEFAULT '', Surcharge REAL NOT NULL DEFAULT 0)";
     try { db.Database.ExecuteSqlRaw(districtTableSql); } catch { }
 

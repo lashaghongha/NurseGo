@@ -82,7 +82,8 @@ public class AdminController : ControllerBase
             n.Services, n.CreatedAt,
             n.Latitude, n.Longitude,
             // ✅ რეალური შემოსავალი (ექთნის წილი — 80%)
-            realEarnings  = earningsMap.TryGetValue(n.Id, out var e) ? Math.Round(e * 0.8m, 2) : 0,
+            realEarnings  = n.ManualEarnings ?? (earningsMap.TryGetValue(n.Id, out var e) ? Math.Round(e * 0.8m, 2) : 0),
+            manualEarnings = n.ManualEarnings,
             user          = n.User,
         });
 
@@ -285,6 +286,32 @@ public class AdminController : ControllerBase
         return Ok();
     }
 
+    // PUT /api/admin/nurses/{id}/earnings — manually set nurse earnings
+    [HttpPut("nurses/{id}/earnings")]
+    public async Task<IActionResult> SetEarnings(int id, [FromBody] SetEarningsRequest req)
+    {
+        var nurse = await _db.Nurses.FindAsync(id);
+        if (nurse == null) return NotFound();
+        nurse.ManualEarnings = req.Amount;
+        await _db.SaveChangesAsync();
+        return Ok(new { manualEarnings = nurse.ManualEarnings, realEarnings = nurse.ManualEarnings });
+    }
+
+    // DELETE /api/admin/nurses/{id}/earnings — reset to computed earnings
+    [HttpDelete("nurses/{id}/earnings")]
+    public async Task<IActionResult> ResetEarnings(int id)
+    {
+        var nurse = await _db.Nurses.FindAsync(id);
+        if (nurse == null) return NotFound();
+        nurse.ManualEarnings = null;
+        await _db.SaveChangesAsync();
+        // Recompute earnings
+        var computed = (decimal)(await _db.Orders
+            .Where(o => o.NurseId == id && o.Status == OrderStatus.Completed)
+            .SumAsync(o => (double)o.TotalPrice));
+        return Ok(new { manualEarnings = (decimal?)null, realEarnings = Math.Round(computed * 0.8m, 2) });
+    }
+
     [HttpGet("revenue/monthly")]
     public async Task<IActionResult> GetMonthlyRevenue()
     {
@@ -310,4 +337,45 @@ public class AdminController : ControllerBase
         return Ok(data);
     }
 
+    // GET /api/admin/district-prices
+    [HttpGet("district-prices")]
+    public async Task<IActionResult> GetDistrictPrices()
+    {
+        var prices = await _db.DistrictPrices.OrderBy(d => d.Name).ToListAsync();
+        return Ok(prices);
+    }
+
+    // PUT /api/admin/district-prices/{district}
+    [HttpPut("district-prices/{district}")]
+    public async Task<IActionResult> UpdateDistrictPrice(string district, [FromBody] UpdateDistrictPriceRequest req)
+    {
+        var dp = await _db.DistrictPrices.FirstOrDefaultAsync(d => d.Name == district);
+        if (dp == null)
+        {
+            dp = new DistrictPrice { Name = district, Surcharge = req.Surcharge };
+            _db.DistrictPrices.Add(dp);
+        }
+        else
+        {
+            dp.Surcharge = req.Surcharge;
+        }
+        await _db.SaveChangesAsync();
+        return Ok(new { dp.Name, dp.Surcharge });
+    }
+
+    // PUT /api/admin/district-prices — set all at once
+    [HttpPut("district-prices")]
+    public async Task<IActionResult> UpdateAllDistrictPrices([FromBody] List<DistrictPriceItem> items)
+    {
+        foreach (var item in items)
+        {
+            var dp = await _db.DistrictPrices.FirstOrDefaultAsync(d => d.Name == item.Name);
+            if (dp != null) dp.Surcharge = item.Surcharge;
+            else _db.DistrictPrices.Add(new DistrictPrice { Name = item.Name, Surcharge = item.Surcharge });
+        }
+        await _db.SaveChangesAsync();
+        return Ok(new { updated = items.Count });
+    }
 }
+
+public record DistrictPriceItem(string Name, decimal Surcharge);

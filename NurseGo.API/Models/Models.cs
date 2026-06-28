@@ -35,6 +35,7 @@ public class Nurse
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public string PhotoUrl { get; set; } = "";
+    public decimal? ManualEarnings { get; set; }
 }
 
 public class Service
@@ -147,8 +148,10 @@ public class PushSubscription
 public record LoginRequest(string Email, string Password);
 public record RegisterRequest(string Name, string Email, string Password, string Role, string Phone = "");
 public record RegisterNurseRequest(string Name, string Email, string Password, string Phone,
-    string LicenseNumber, string Districts, int ExperienceYears, string Services);
+    string LicenseNumber, string Districts, int ExperienceYears, string Services,
+    string? District = null);
 public record UpdateNurseDistrictsRequest(string Districts);
+public record UpdateNurseHomeDistrictRequest(string District);
 public record UpdateNurseServicesRequest(string Services);
 public record UpdatePhoneRequest(string Phone);
 public record PushSubscribeRequest(string Endpoint, string P256dh, string Auth);
@@ -166,6 +169,14 @@ public record UpdateOrderStatusRequest(string Status);
 public record ConfirmReceiptRequest(string ServiceName, decimal PricePaid);
 public record SubmitRatingRequest(int OrderId, int NurseId, int Stars, string Comment);
 public record UpdateServicePriceRequest(decimal Price);
+public record UpdateDistrictPriceRequest(decimal Surcharge);
+
+public class DistrictPrice
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public decimal Surcharge { get; set; }
+}
 public record ServiceUpsertRequest(string Name, string Icon, decimal Price, string Category, string DurationEstimate, bool IsActive = true);
 public class AdminUpdateNurseRequest
 {
@@ -184,3 +195,4 @@ public record AuthResponse(string Token, UserDto User);
 public record UserDto(int Id, string Name, string Email, string Role);
 
 public record RateOrderRequest(int Stars, string? Comment);
+public record SetEarningsRequest(decimal Amount);

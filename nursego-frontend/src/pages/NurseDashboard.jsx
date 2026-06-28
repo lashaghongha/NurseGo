@@ -108,6 +108,7 @@ export default function NurseDashboard() {
   const ALL_DISTRICTS = ['ვაკე','საბურთალო','გლდანი','დიდუბე','ნაძალადევი','ისანი','სამგორი','კრწანისი','დიღომი','ვარკეთილი'];
   const [nurseStatus, setNurseStatus] = useState('Active');
   const [nurseId, setNurseId] = useState(null);
+  const [homeDistrict, setHomeDistrict] = useState('');
   const [myDistricts, setMyDistricts] = useState([]);
   const [showDistrictEdit, setShowDistrictEdit] = useState(false);
   const [myDocs, setMyDocs] = useState([]);
@@ -134,6 +135,7 @@ export default function NurseDashboard() {
             }
             setNurseId(me.id);
             setNurseStatus(me.status || 'Active');
+            setHomeDistrict(me.district || '');
             const dList = me.districts ? me.districts.split(',').map(d => d.trim()).filter(Boolean)
                         : me.district ? [me.district] : [];
             setMyDistricts(dList);
@@ -163,7 +165,9 @@ export default function NurseDashboard() {
           const same  = (avail.sameDistrict  || []).map(o => ({ ...o, _isOther: false }));
           const other = (avail.otherDistrict || []).map(o => ({ ...o, _isOther: true  }));
           setPendingOrders([...same, ...other]);
-        } catch { /* endpoint might not exist yet */ }
+        } catch (availErr) {
+          console.error('Available orders load failed:', availErr);
+        }
 
       } finally {
         setLoading(false);
@@ -171,7 +175,7 @@ export default function NurseDashboard() {
     };
 
     load();
-    pollRef.current = setInterval(load, 20000);
+    pollRef.current = setInterval(load, 5000);
 
     // SignalR
     const initSignalR = async (nId) => {
@@ -205,8 +209,8 @@ export default function NurseDashboard() {
       } catch { /* silent */ }
     };
 
-    const nurseIdPromise = nursesService.getMe().then(me => me?.id).catch(() => null);
-    nurseIdPromise.then(initSignalR);
+    // load() already fetches nurse profile — reuse that result instead of a second API call
+    nursesService.getMe().then(me => initSignalR(me?.id)).catch(() => initSignalR(null));
 
     return () => {
       clearInterval(pollRef.current);
@@ -359,9 +363,15 @@ export default function NurseDashboard() {
 
         {/* My Districts */}
         <div className="card" style={{ marginBottom: 24, padding: '16px 20px' }}>
+          {homeDistrict && (
+            <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid #f1f5f9' }}>
+              <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--gray)' }}>🏠 საცხოვრებელი უბანი</span>
+              <span className="district-badge" style={{ marginLeft: 8 }}>{homeDistrict}</span>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showDistrictEdit ? 14 : 0 }}>
             <div>
-              <span style={{ fontWeight: 700, fontSize: 15 }}>📍 ჩემი სამუშაო უბნები</span>
+              <span style={{ fontWeight: 700, fontSize: 15 }}>🗺️ ჩემი სამუშაო უბნები</span>
               {!showDistrictEdit && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                   {myDistricts.length > 0

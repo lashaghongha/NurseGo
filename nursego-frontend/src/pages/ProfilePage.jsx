@@ -54,6 +54,10 @@ export default function ProfilePage() {
   const [editingPhone, setEditingPhone] = useState(false);
   const [phoneInput,   setPhoneInput]   = useState('');
 
+  // home district edit
+  const [editingHomeDistrict, setEditingHomeDistrict] = useState(false);
+  const [editHomeDistrict,    setEditHomeDistrict]    = useState('');
+
   // edit modes
   const [editingDistricts, setEditingDistricts] = useState(false);
   const [editDistricts,    setEditDistricts]    = useState([]);
@@ -113,6 +117,18 @@ export default function ProfilePage() {
     finally { setSaving(false); }
   };
 
+  const saveHomeDistrict = async () => {
+    if (!editHomeDistrict) { toast.error('აირჩიე უბანი'); return; }
+    setSaving(true);
+    try {
+      await nursesService.updateHomeDistrict(nurseData.id, editHomeDistrict);
+      setNurseData(prev => ({ ...prev, district: editHomeDistrict }));
+      setEditingHomeDistrict(false);
+      toast.success('საცხოვრებელი უბანი განახლდა!');
+    } catch { toast.error('შეცდომა'); }
+    finally { setSaving(false); }
+  };
+
   const saveDistricts = async () => {
     if (editDistricts.length === 0) { toast.error('მინიმუმ ერთი უბანი'); return; }
     setSaving(true);
@@ -120,7 +136,7 @@ export default function ProfilePage() {
       await nursesService.updateDistricts(nurseData.id, editDistricts.join(','));
       setNurseData(prev => ({ ...prev, districts: editDistricts.join(',') }));
       setEditingDistricts(false);
-      toast.success('უბნები განახლდა!');
+      toast.success('სამუშაო უბნები განახლდა!');
     } catch { toast.error('შეცდომა'); }
     finally { setSaving(false); }
   };
@@ -343,10 +359,48 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* უბნები */}
+                  {/* საცხოვრებელი უბანი */}
+                  <div className="card" style={{ padding:20 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: editingHomeDistrict ? 10 : 0 }}>
+                      <div className="np-section-title" style={{ marginBottom:0 }}>🏠 საცხოვრებელი უბანი</div>
+                      {!editingHomeDistrict ? (
+                        <button type="button" className="np-edit-btn"
+                          onClick={() => { setEditHomeDistrict(nurseData.district || ''); setEditingHomeDistrict(true); }}>
+                          ✏️ შეცვლა
+                        </button>
+                      ) : (
+                        <div style={{ display:'flex', gap:8 }}>
+                          <button type="button" className="np-edit-btn np-save-btn" onClick={saveHomeDistrict} disabled={saving}>{saving?'⏳':'✅ შენახვა'}</button>
+                          <button type="button" className="np-edit-btn" onClick={() => setEditingHomeDistrict(false)}>✖</button>
+                        </div>
+                      )}
+                    </div>
+                    {!editingHomeDistrict ? (
+                      <div style={{ marginTop: 8 }}>
+                        {nurseData.district
+                          ? <span className="np-district-chip">{nurseData.district}</span>
+                          : <span style={{ color:'var(--gray)', fontSize:13 }}>მითითებული არ არის</span>
+                        }
+                      </div>
+                    ) : (
+                      <select
+                        value={editHomeDistrict}
+                        onChange={e => setEditHomeDistrict(e.target.value)}
+                        className="form-input"
+                        style={{ marginTop: 10 }}
+                      >
+                        <option value="">— აირჩიე უბანი —</option>
+                        {ALL_DISTRICTS.map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* სამუშაო უბნები */}
                   <div className="card" style={{ padding:20 }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-                      <div className="np-section-title" style={{ marginBottom:0 }}>📍 სამუშაო უბნები</div>
+                      <div className="np-section-title" style={{ marginBottom:0 }}>🗺️ სამუშაო უბნები</div>
                       {!editingDistricts ? (
                         <button type="button" className="np-edit-btn"
                           onClick={() => { setEditDistricts((nurseData.districts||'').split(',').filter(Boolean).map(s=>s.trim())); setEditingDistricts(true); }}>
@@ -361,9 +415,12 @@ export default function ProfilePage() {
                     </div>
                     {!editingDistricts ? (
                       <div className="np-district-chips">
-                        {(nurseData.districts || nurseData.district || '').split(',').filter(Boolean).map(d => (
-                          <span key={d} className="np-district-chip">{d.trim()}</span>
-                        ))}
+                        {(nurseData.districts || '').split(',').filter(Boolean).length > 0
+                          ? (nurseData.districts || '').split(',').filter(Boolean).map(d => (
+                              <span key={d} className="np-district-chip">{d.trim()}</span>
+                            ))
+                          : <span style={{ color:'var(--gray)', fontSize:13 }}>სამუშაო უბნები მითითებული არ არის</span>
+                        }
                       </div>
                     ) : (
                       <div className="np-checkbox-grid">

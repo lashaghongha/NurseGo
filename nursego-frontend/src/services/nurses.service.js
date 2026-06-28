@@ -10,6 +10,9 @@ export const nursesService = {
   updateStatus: (id, status) =>
     api.put(`/nurses/${id}/status`, { status }).then(r => r.data),
 
+  updateHomeDistrict: (id, district) =>
+    api.put(`/nurses/${id}/home-district`, { district }).then(r => r.data),
+
   updateDistricts: (id, districts) =>
     api.put(`/nurses/${id}/districts`, { districts }).then(r => r.data),
 

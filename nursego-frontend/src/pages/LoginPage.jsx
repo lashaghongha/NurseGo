@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [license, setLicense] = useState('');
+  const [homeDistrict, setHomeDistrict] = useState('');
   const [districts, setDistricts] = useState([]);
   const [experience, setExperience] = useState(1);
   const [agreedTerms, setAgreedTerms] = useState(false);
@@ -93,6 +94,7 @@ export default function LoginPage() {
           data = await authService.registerNurse({
             name, email, password, phone,
             licenseNumber: license,
+            district: homeDistrict || undefined,
             districts: districts.join(','),
             experienceYears: Number(experience),
             services: selectedServices.join(','),
@@ -230,7 +232,20 @@ export default function LoginPage() {
                   placeholder="NRS-XXXX-XXXX" className="form-input" required />
               </div>
               <div className="form-group">
-                <label>სამუშაო უბნები * <span style={{fontSize:12,color:'var(--gray)',fontWeight:400}}>(შეგიძლია რამდენიმე აირჩიო)</span></label>
+                <label>🏠 საცხოვრებელი უბანი <span style={{fontSize:12,color:'var(--gray)',fontWeight:400}}>(სადაც ცხოვრობ)</span></label>
+                <select
+                  value={homeDistrict}
+                  onChange={e => setHomeDistrict(e.target.value)}
+                  className="form-input"
+                >
+                  <option value="">— აირჩიე უბანი —</option>
+                  {ALL_DISTRICTS.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>🗺️ სამუშაო უბნები * <span style={{fontSize:12,color:'var(--gray)',fontWeight:400}}>(სად შეგიძლია მისვლა)</span></label>
                 <div className="district-checkbox-grid">
                   {ALL_DISTRICTS.map(d => (
                     <label key={d} className={`district-checkbox-item ${districts.includes(d) ? 'selected' : ''}`}>

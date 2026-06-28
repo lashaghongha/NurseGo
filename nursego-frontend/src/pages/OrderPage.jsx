@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { servicesService } from '../services/services.service';
 import { ordersService } from '../services/orders.service';
 import { paymentsService } from '../services/payments.service';
+import { nursesService } from '../services/nurses.service';
 import { useApp } from '../context/AppContext';
 import LocationPicker from '../components/LocationPicker';
 import toast from 'react-hot-toast';
@@ -41,20 +42,22 @@ export default function OrderPage() {
   const navigate = useNavigate();
   const { currentUser } = useApp();
   const prefill = location.state || {};
-  const preferredNurseId   = prefill.nurseId   || null;
-  const preferredNurseName = prefill.nurseName || null;
-
   const [services, setServices] = useState([]);
   const [step, setStep] = useState(1);
-  const [selectedServices, setSelectedServices] = useState([]); // მრავლობითი
+  const [selectedServices, setSelectedServices] = useState([]);
   const [selectedDistrict, setSelectedDistrict] = useState(null);
   const [address, setAddress] = useState(prefill.address || '');
-  const [pinCoords, setPinCoords] = useState(null); // { lat, lng }
+  const [pinCoords, setPinCoords] = useState(null);
   const [selectedTime, setSelectedTime] = useState('მიმდინარე (ASAP)');
   const [notes, setNotes] = useState('');
   const [isNight, setIsNight] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [loading, setLoading] = useState(false);
+  // ექთნის არჩევა (სტეპი 3)
+  const [districtNurses, setDistrictNurses] = useState([]);
+  const [nursesLoading, setNursesLoading] = useState(false);
+  const [chosenNurseId, setChosenNurseId]     = useState(prefill.nurseId   || null);
+  const [chosenNurseName, setChosenNurseName] = useState(prefill.nurseName || null);
 
   const toggleService = (s) => {
     setSelectedServices(prev =>
@@ -90,9 +93,9 @@ export default function OrderPage() {
 
   const canProceed = () => {
     if (step === 1) return selectedServices.length > 0;
-    // step 2: მისამართი სავალდებულოა; უბანი — ან ხელით, ან pin-იდან ავტო
     if (step === 2) return address.trim().length > 0 && (!!selectedDistrict || !!pinCoords);
-    if (step === 3) return !!selectedTime;
+    if (step === 3) return true; // ექთნის არჩევა სურვილისამებრ
+    if (step === 4) return !!selectedTime;
     return true;
   };
 
@@ -114,7 +117,7 @@ export default function OrderPage() {
         scheduledTime:   selectedTime !== 'მიმდინარე (ASAP)' ? new Date().toISOString() : null,
         latitude:        pinCoords?.lat ?? null,
         longitude:       pinCoords?.lng ?? null,
-        preferredNurseId,
+        preferredNurseId: chosenNurseId,
         notes,
       });
     } catch (err) {
@@ -151,10 +154,10 @@ export default function OrderPage() {
       <div className="container">
         <div className="order-wrapper">
           <div className="steps-bar">
-            {[1,2,3,4].map(s => (
+            {[1,2,3,4,5].map(s => (
               <div key={s} className={`step ${step >= s ? 'done' : ''} ${step === s ? 'current' : ''}`}>
                 <div className="step-circle">{step > s ? '✓' : s}</div>
-                <div className="step-label">{['მომსახურება','მისამართი','დრო','დადასტურება'][s-1]}</div>
+                <div className="step-label">{['მომსახურება','მისამართი','ექთანი','დრო','დადასტურება'][s-1]}</div>
               </div>
             ))}
           </div>
@@ -163,23 +166,6 @@ export default function OrderPage() {
             <div className="order-form">
               {step === 1 && (
                 <div className="fade-in">
-                  {preferredNurseName && (
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      background: '#eff6ff', border: '1.5px solid #bfdbfe',
-                      borderRadius: 10, padding: '10px 14px', marginBottom: 16,
-                    }}>
-                      <span style={{ fontSize: 22 }}>👩‍⚕️</span>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 14 }}>{preferredNurseName}</div>
-                        <div style={{ fontSize: 12, color: 'var(--gray)' }}>პირდაპირი გამოძახება</div>
-                      </div>
-                      <span style={{
-                        marginLeft: 'auto', background: 'var(--primary)', color: 'white',
-                        fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
-                      }}>✓ არჩეულია</span>
-                    </div>
-                  )}
                   <h2 className="form-title">აირჩიე მომსახურება</h2>
                   <p style={{ fontSize: 13, color: 'var(--gray)', marginBottom: 12 }}>
                     შეგიძლია რამდენიმე სერვისი აირჩიო ერთდროულად
@@ -268,6 +254,81 @@ export default function OrderPage() {
 
               {step === 3 && (
                 <div className="fade-in">
+                  <h2 className="form-title">ექთნის არჩევა</h2>
+                  <p style={{ fontSize: 13, color: 'var(--gray)', marginBottom: 16 }}>
+                    კონკრეტული ექთანი აირჩიე ან სისტემას მიანდე — ის შენი უბნის ხელმისაწვდომ ექთანს მოძებნის
+                  </p>
+
+                  {/* სისტემა შეარჩევს */}
+                  <div
+                    onClick={() => { setChosenNurseId(null); setChosenNurseName(null); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '14px 16px', borderRadius: 12, cursor: 'pointer',
+                      border: `2px solid ${!chosenNurseId ? 'var(--primary)' : '#e2e8f0'}`,
+                      background: !chosenNurseId ? '#eff6ff' : 'white',
+                      marginBottom: 12,
+                    }}
+                  >
+                    <span style={{ fontSize: 28 }}>🔀</span>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15 }}>სისტემა შეარჩევს</div>
+                      <div style={{ fontSize: 12, color: 'var(--gray)' }}>ხელმისაწვდომ ექთანს ავტომატურად მოვძებნი</div>
+                    </div>
+                    {!chosenNurseId && <span style={{ marginLeft: 'auto', color: 'var(--primary)', fontWeight: 700 }}>✓</span>}
+                  </div>
+
+                  {/* ექთნების სია */}
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)', marginBottom: 8 }}>
+                    ან აირჩიე კონკრეტული ექთანი {selectedDistrict ? `(${selectedDistrict.name})` : ''}:
+                  </div>
+                  {nursesLoading ? (
+                    <div style={{ textAlign: 'center', padding: 24, color: 'var(--gray)' }}>⏳ იტვირთება...</div>
+                  ) : districtNurses.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 20, color: 'var(--gray)', fontSize: 13 }}>
+                      ამ უბანში ახლა ხელმისაწვდომი ექთანი არ არის — სისტემა სხვა უბნის ექთანს მოძებნის
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {districtNurses.map(n => {
+                        const isChosen = chosenNurseId === n.id;
+                        return (
+                          <div
+                            key={n.id}
+                            onClick={() => { setChosenNurseId(n.id); setChosenNurseName(n.name); }}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 12,
+                              padding: '12px 14px', borderRadius: 12, cursor: 'pointer',
+                              border: `2px solid ${isChosen ? 'var(--primary)' : '#e2e8f0'}`,
+                              background: isChosen ? '#eff6ff' : 'white',
+                            }}
+                          >
+                            {n.photoUrl
+                              ? <img src={n.photoUrl} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                              : <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>👩‍⚕️</div>
+                            }
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: 14 }}>{n.name}</div>
+                              <div style={{ fontSize: 12, color: 'var(--gray)' }}>
+                                {n.experienceYears} წ. გამოცდ. · {n.rating ? `⭐ ${n.rating.toFixed(1)}` : 'შეფ. არ არის'} · {n.totalOrders} შეკვ.
+                              </div>
+                              {n.services && (
+                                <div style={{ fontSize: 11, color: 'var(--primary)', marginTop: 2 }}>
+                                  {n.services.split(',').map(s => s.trim()).filter(Boolean).join(' · ')}
+                                </div>
+                              )}
+                            </div>
+                            {isChosen && <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 18 }}>✓</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {step === 4 && (
+                <div className="fade-in">
                   <h2 className="form-title">სასურველი დრო</h2>
                   <div className="time-picker">
                     {TIMES.map(t => (
@@ -312,7 +373,7 @@ export default function OrderPage() {
                 </div>
               )}
 
-              {step === 4 && (
+              {step === 5 && (
                 <div className="fade-in">
                   <h2 className="form-title">დადასტურება</h2>
                   <div className="confirm-card">
@@ -325,12 +386,12 @@ export default function OrderPage() {
                       </div>
                     </div>
                     <div className="cc-row"><span>მისამართი</span><strong>{selectedDistrict?.name}, {address}</strong></div>
-                    {preferredNurseName && (
-                      <div className="cc-row">
-                        <span>ექთანი</span>
-                        <strong style={{ color: 'var(--primary)' }}>👩‍⚕️ {preferredNurseName}</strong>
-                      </div>
-                    )}
+                    <div className="cc-row">
+                      <span>ექთანი</span>
+                      <strong style={{ color: chosenNurseId ? 'var(--primary)' : 'var(--gray)' }}>
+                        {chosenNurseId ? `👩‍⚕️ ${chosenNurseName}` : '🔀 სისტემა შეარჩევს'}
+                      </strong>
+                    </div>
                     <div className="cc-row"><span>დრო</span><strong>{selectedTime}</strong></div>
                     <div className="cc-row"><span>გადახდა</span><strong>{PAYMENT_METHODS.find(p=>p.id===paymentMethod)?.label}</strong></div>
                     {notes && <div className="cc-row"><span>შენიშვნა</span><strong>{notes}</strong></div>}
@@ -345,9 +406,8 @@ export default function OrderPage() {
 
               <div className="form-nav">
                 {step > 1 && <button className="btn btn-outline" onClick={() => setStep(step - 1)}>← უკან</button>}
-                {step < 4 ? (
+                {step < 5 ? (
                   <button className="btn btn-primary" onClick={async () => {
-                    // step 2-დან გასვლისას — pinCoords არ გვაქვს → geocode ახლავე
                     if (step === 2 && !pinCoords && address.trim()) {
                       try {
                         const q = encodeURIComponent(`${address}, თბილისი, საქართველო`);
@@ -359,6 +419,22 @@ export default function OrderPage() {
                           if (!selectedDistrict) setSelectedDistrict(nearestDistrict(coords.lat, coords.lng));
                         }
                       } catch {}
+                    }
+                    // სტეპ 3-ზე შესვლისას ექთნების ჩატვირთვა
+                    if (step === 2) {
+                      const district = selectedDistrict?.name || (pinCoords ? nearestDistrict(pinCoords.lat, pinCoords.lng).name : null);
+                      if (district) {
+                        setNursesLoading(true);
+                        try {
+                          const all = await nursesService.getAll({ status: 'Active' });
+                          const filtered = all.filter(n =>
+                            n.isVerified &&
+                            (n.districts || n.district || '').split(',').map(d => d.trim()).includes(district)
+                          );
+                          setDistrictNurses(filtered);
+                        } catch { setDistrictNurses([]); }
+                        finally { setNursesLoading(false); }
+                      }
                     }
                     setStep(step + 1);
                   }} disabled={!canProceed()}>შემდეგი →</button>

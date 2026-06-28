@@ -53,7 +53,8 @@ public class OrdersController : ControllerBase
         }
 
         var allBasePrice   = service.Price + extraBasePrice;
-        var distSurcharge  = PriceCalculator.GetDistrictSurcharge(req.District);
+        var districtPrice  = await _db.DistrictPrices.FirstOrDefaultAsync(d => d.Name == req.District);
+        var distSurcharge  = districtPrice?.Surcharge ?? PriceCalculator.GetDistrictSurcharge(req.District);
         var nightSurcharge = PriceCalculator.GetNightSurcharge(allBasePrice, req.IsNightTime);
         var total          = allBasePrice + distSurcharge + nightSurcharge;
 
@@ -117,10 +118,15 @@ public class OrdersController : ControllerBase
         }
 
         // ─── ნაბიჯი 1: Broadcast იმ უბნის ყველა Active ექთანს ───────────────
-        var districtNurses = await _db.Nurses
-            .Where(n => n.Status == NurseStatus.Active && n.IsVerified &&
-                       (n.Districts.Contains(req.District) || n.District == req.District))
+        // EF-ში Contains() → SQL LIKE '%value%' — ზუსტი შედარება in-memory-ში
+        var allActiveNurses = await _db.Nurses
+            .Where(n => n.Status == NurseStatus.Active && n.IsVerified)
             .ToListAsync();
+        var districtNurses = allActiveNurses
+            .Where(n => (n.Districts ?? "").Split(',').Select(d => d.Trim())
+                            .Contains(req.District, StringComparer.OrdinalIgnoreCase)
+                        || string.Equals(n.District, req.District, StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
         var payload = new {
             orderId    = order.Id,
@@ -269,25 +275,33 @@ public class OrdersController : ControllerBase
         var nurseDistricts = (nurse.Districts ?? nurse.District ?? "")
             .Split(',').Select(d => d.Trim()).Where(d => d.Length > 0).ToList();
 
-        // პირველ რიგში — ექთნის საკუთარი უბნები
-        var sameDistrict = await _db.Orders
+        var allPending = await _db.Orders
             .Include(o => o.Service)
             .Include(o => o.Customer)
-            .Where(o => o.Status == OrderStatus.Pending && o.NurseId == null &&
-                        nurseDistricts.Contains(o.District))
+            .Where(o => o.Status == OrderStatus.Pending && o.NurseId == null)
             .OrderBy(o => o.CreatedAt)
             .ToListAsync();
 
-        // მეორე — სხვა უბნები (3 წუთზე მეტი Pending)
-        var cutoff = DateTime.UtcNow.AddMinutes(-3);
-        var otherDistrict = await _db.Orders
-            .Include(o => o.Service)
-            .Include(o => o.Customer)
-            .Where(o => o.Status == OrderStatus.Pending && o.NurseId == null &&
-                        !nurseDistricts.Contains(o.District) &&
-                        o.CreatedAt <= cutoff)
-            .OrderBy(o => o.CreatedAt)
-            .ToListAsync();
+        List<Order> sameDistrict;
+        List<Order> otherDistrict;
+
+        if (nurseDistricts.Count == 0)
+        {
+            // ექთნს უბნები არ აქვს დაყენებული — ყველა Pending შეკვეთა ჩანს
+            sameDistrict  = allPending;
+            otherDistrict = new List<Order>();
+        }
+        else
+        {
+            var cutoff = DateTime.UtcNow.AddMinutes(-3);
+            sameDistrict  = allPending
+                .Where(o => nurseDistricts.Contains(o.District.Trim(), StringComparer.OrdinalIgnoreCase))
+                .ToList();
+            otherDistrict = allPending
+                .Where(o => !nurseDistricts.Contains(o.District.Trim(), StringComparer.OrdinalIgnoreCase)
+                            && o.CreatedAt <= cutoff)
+                .ToList();
+        }
 
         return Ok(new {
             sameDistrict,
@@ -339,7 +353,7 @@ public class OrdersController : ControllerBase
     // ─── PUT /api/orders/{id}/status ─────────────────────────────────────────
     [HttpPut("{id}/status")]
     [Authorize(Roles = "Nurse,Admin")]
-    public async Task<IActionResult> UpdateStatus(int id, UpdateOrderStatusRequest req)
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateOrderStatusRequest req)
     {
         var order = await _db.Orders.Include(o => o.Nurse).FirstOrDefaultAsync(o => o.Id == id);
         if (order == null) return NotFound();

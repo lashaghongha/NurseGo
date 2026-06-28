@@ -39,4 +39,13 @@ export const adminService = {
 
   assignNurse: (orderId, nurseId) =>
     api.put(`/orders/${orderId}/assign/${nurseId}`).then(r => r.data),
+
+  getDistrictPrices: () =>
+    api.get('/admin/district-prices').then(r => r.data),
+
+  updateDistrictPrice: (district, surcharge) =>
+    api.put(`/admin/district-prices/${encodeURIComponent(district)}`, { surcharge }).then(r => r.data),
+
+  updateAllDistrictPrices: (items) =>
+    api.put('/admin/district-prices', items).then(r => r.data),
 };

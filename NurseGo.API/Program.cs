@@ -129,6 +129,7 @@ try
             "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedAt\" TIMESTAMP WITH TIME ZONE",
             "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"Latitude\" DOUBLE PRECISION",
             "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"Longitude\" DOUBLE PRECISION",
+            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"ManualEarnings\" NUMERIC",
         }
         : new[]
         {
@@ -144,10 +145,27 @@ try
             "ALTER TABLE Orders ADD COLUMN ConfirmedAt TEXT",
             "ALTER TABLE Orders ADD COLUMN Latitude REAL",
             "ALTER TABLE Orders ADD COLUMN Longitude REAL",
+            "ALTER TABLE Nurses ADD COLUMN ManualEarnings REAL",
         };
 
     foreach (var sql in columnMigrations)
         try { db.Database.ExecuteSqlRaw(sql); } catch { }
+
+    // ─── DistrictPrices table ────────────────────────────────────────────────
+    var districtTableSql = db.Database.IsNpgsql()
+        ? "CREATE TABLE IF NOT EXISTS nursego.\"DistrictPrices\" (\"Id\" SERIAL PRIMARY KEY, \"Name\" TEXT NOT NULL DEFAULT '', \"Surcharge\" NUMERIC NOT NULL DEFAULT 0)"
+        : "CREATE TABLE IF NOT EXISTS DistrictPrices (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL DEFAULT '', Surcharge REAL NOT NULL DEFAULT 0)";
+    try { db.Database.ExecuteSqlRaw(districtTableSql); } catch { }
+
+    // ─── Seed: District Prices (all 5 GEL) ──────────────────────────────────
+    var allDistricts = new[] { "ვაკე", "საბურთალო", "გლდანი", "დიდუბე", "ნაძალადევი", "ისანი", "სამგორი", "კრწანისი", "დიღომი", "ვარკეთილი" };
+    if (!db.DistrictPrices.Any())
+    {
+        foreach (var d in allDistricts)
+            db.DistrictPrices.Add(new NurseGo.API.Models.DistrictPrice { Name = d, Surcharge = 5 });
+        db.SaveChanges();
+        Console.WriteLine("[SEED] District prices seeded (5 GEL each)");
+    }
 
     // ─── Seed: Admin user (idempotent) ───────────────────────────────────────
     var adminEmail = "admin@citymed.ge";

@@ -103,14 +103,17 @@ export default function Navbar() {
           {userRole === 'admin' && (
             <Link to="/admin" className={`nav-link ${isActive('/admin') ? 'active' : ''}`}>⚙️ ადმინი</Link>
           )}
-          {currentUser ? (
-            <>
-              <Link to="/profile" className={`nav-link ${isActive('/profile') ? 'active' : ''}`}>👤 {currentUser.name}</Link>
-              <button className="nav-link" style={{ background: 'none', textAlign: 'left', color: 'var(--danger)' }} onClick={handleLogout}>🚪 გასვლა</button>
-            </>
-          ) : (
-            <Link to="/login" className={`nav-link ${isActive('/login') ? 'active' : ''}`}>🔑 შესვლა / რეგისტრაცია</Link>
-          )}
+          {/* მობილე მენიუში ვაჩვენებთ user info-ს */}
+          <div className="mobile-only-links">
+            {currentUser ? (
+              <>
+                <Link to="/profile" className={`nav-link ${isActive('/profile') ? 'active' : ''}`}>👤 {currentUser.name}</Link>
+                <button className="nav-link" style={{ background: 'none', textAlign: 'left', color: 'var(--danger)', width: '100%', cursor: 'pointer' }} onClick={handleLogout}>🚪 გასვლა</button>
+              </>
+            ) : (
+              <Link to="/login" className={`nav-link ${isActive('/login') ? 'active' : ''}`}>🔑 შესვლა / რეგისტრაცია</Link>
+            )}
+          </div>
         </div>
 
         <div className="navbar-actions">

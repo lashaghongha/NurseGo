@@ -1,7 +1,9 @@
 import * as signalR from '@microsoft/signalr';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-const HUB_URL  = API_BASE.replace('/api', '') + '/hubs/orders';
+const API_BASE = process.env.REACT_APP_API_URL || '/api';
+const HUB_URL  = API_BASE === '/api'
+  ? `${window.location.protocol}//${window.location.host}/hubs/orders`
+  : API_BASE.replace('/api', '') + '/hubs/orders';
 
 let connection = null;
 

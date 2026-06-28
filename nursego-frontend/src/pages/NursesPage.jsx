@@ -35,7 +35,7 @@ const STATUS_MAP = {
   Pending:  { label: '⚫ მოლოდინი',   cls: 'badge-offline' },
 };
 
-const DISTRICTS = ['ყველა','ვაკე','საბურთალო','გლდანი','დიდუბე','ნაძალადევი','ისანი','სამგორი','კრწანისი'];
+const DISTRICTS = ['ყველა','ვაკე','საბურთალო','გლდანი','დიდუბე','ნაძალადევი','ისანი','სამგორი','კრწანისი','დიღომი','ვარკეთილი'];
 
 export default function NursesPage() {
   const [nurses, setNurses] = useState([]);
@@ -106,7 +106,7 @@ export default function NursesPage() {
                   </div>
                   <div className="nc-stats">
                     <div className="nc-stat"><span>🏥</span> {nurse.experienceYears} წ.</div>
-                    <div className="nc-stat"><span>📍</span> {nurse.district}</div>
+                    <div className="nc-stat"><span>📍</span> {(nurse.districts || nurse.district || '').split(',').map(d=>d.trim()).filter(Boolean).join(', ')}</div>
                     {nurse.isPremium && <div className="nc-stat"><span>⭐</span> Premium</div>}
                   </div>
                   <div className="nc-services">
@@ -146,7 +146,7 @@ export default function NursesPage() {
               <div className="mstat"><div className="mstat-val">{selectedNurse.totalOrders}</div><div className="mstat-label">შეკვეთა</div></div>
               <div className="mstat"><div className="mstat-val">{selectedNurse.rating ? `${selectedNurse.rating.toFixed(1)}⭐` : '—'}</div><div className="mstat-label">რეიტინგი</div></div>
             </div>
-            <div className="modal-section"><strong>უბანი:</strong> {selectedNurse.district}</div>
+            <div className="modal-section"><strong>უბანი:</strong> {(selectedNurse.districts || selectedNurse.district || '—').split(',').map(d=>d.trim()).filter(Boolean).join(', ')}</div>
             <div className="modal-section">
               <strong>მომსახურებები:</strong>
               <div className="nc-services" style={{ marginTop: 8 }}>

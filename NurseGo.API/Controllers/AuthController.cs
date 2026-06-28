@@ -72,14 +72,16 @@ public class AuthController : ControllerBase
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
-        // პირველი უბანი = მთავარი
-        var firstDistrict = req.Districts.Split(',').FirstOrDefault()?.Trim() ?? "";
+        // საცხოვრებელი უბანი: ექთნის მიერ არჩეული ან პირველი სამუშაო უბანი
+        var homeDistrict = !string.IsNullOrWhiteSpace(req.District)
+            ? req.District.Trim()
+            : req.Districts.Split(',').FirstOrDefault()?.Trim() ?? "";
 
         var nurse = new Nurse
         {
             UserId = user.Id,
             LicenseNumber = req.LicenseNumber,
-            District = firstDistrict,
+            District = homeDistrict,
             Districts = req.Districts,
             ExperienceYears = req.ExperienceYears,
             Services = req.Services,

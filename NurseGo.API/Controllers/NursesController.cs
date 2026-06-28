@@ -70,6 +70,20 @@ public class NursesController : ControllerBase
         return Ok(new { nurse.Status });
     }
 
+    [HttpPut("{id}/home-district")]
+    [Authorize(Roles = "Nurse")]
+    public async Task<IActionResult> UpdateHomeDistrict(int id, UpdateNurseHomeDistrictRequest req)
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var nurse = await _db.Nurses.FindAsync(id);
+        if (nurse == null) return NotFound();
+        if (nurse.UserId != userId) return Forbid();
+
+        nurse.District = req.District.Trim();
+        await _db.SaveChangesAsync();
+        return Ok(new { nurse.District });
+    }
+
     [HttpPut("{id}/districts")]
     [Authorize(Roles = "Nurse")]
     public async Task<IActionResult> UpdateDistricts(int id, UpdateNurseDistrictsRequest req)
@@ -78,7 +92,7 @@ public class NursesController : ControllerBase
         if (nurse == null) return NotFound();
 
         nurse.Districts = req.Districts;
-        nurse.District = req.Districts.Split(',').FirstOrDefault()?.Trim() ?? nurse.District;
+        // District (საცხოვრებელი) ცალკე ველია — UpdateHomeDistrict-ით იცვლება
 
         await _db.SaveChangesAsync();
         return Ok(new { nurse.Districts, nurse.District });

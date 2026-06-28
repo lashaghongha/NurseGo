@@ -22,6 +22,7 @@ const TABS = [
   { key: 'users',     label: '👤 მომხმარებლები' },
   { key: 'orders',    label: '📋 შეკვეთები' },
   { key: 'prices',    label: '🛠️ მომსახურება' },
+  { key: 'districts', label: '📍 უბნის ფასი' },
   { key: 'ratings',   label: '⭐ შეფასებები' },
 ];
 
@@ -44,6 +45,10 @@ export default function AdminPanel() {
   const [nurseForm, setNurseForm] = useState({});
   const [nurseFormSaving, setNurseFormSaving] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editingEarnings, setEditingEarnings] = useState(null); // nurseId or null
+  const [earningsInput, setEarningsInput] = useState('');
+  const [districtPrices, setDistrictPrices] = useState([]);
+  const [savingDistrict, setSavingDistrict] = useState(null);
   const sidebarRef = useRef(null);
   const activeTabRef = useRef(null);
 
@@ -77,6 +82,9 @@ export default function AdminPanel() {
     }
     if (activeTab === 'prices') {
       servicesService.getAllForAdmin().then(setServices).catch(() => toast.error('მომსახურებები ვერ ჩაიტვირთა'));
+    }
+    if (activeTab === 'districts' && districtPrices.length === 0) {
+      adminService.getDistrictPrices().then(setDistrictPrices).catch(() => toast.error('უბნის ფასები ვერ ჩაიტვირთა'));
     }
     if (activeTab === 'ratings' && ratings.length === 0) {
       api.get('/ratings').then(r => setRatings(r.data)).catch(() => toast.error('შეფასებები ვერ ჩაიტვირთა'));
@@ -116,6 +124,36 @@ export default function AdminPanel() {
     toast.success('ექთანი განიბლოკა');
   };
 
+  const changeNurseStatus = async (id, newStatus) => {
+    try {
+      await adminService.updateNurse(id, { status: newStatus });
+      setNurses(prev => prev.map(n => n.id === id ? { ...n, status: newStatus } : n));
+      toast.success('სტატუსი შეიცვალა');
+    } catch { toast.error('შეცდომა სტატუსის შეცვლისას'); }
+  };
+
+  const updateDistrictPrice = async (name, surcharge) => {
+    const val = parseFloat(surcharge);
+    if (isNaN(val) || val < 0) { toast.error('არასწორი ფასი'); return; }
+    setSavingDistrict(name);
+    try {
+      await adminService.updateDistrictPrice(name, val);
+      setDistrictPrices(prev => prev.map(d => d.name === name ? { ...d, surcharge: val } : d));
+      toast.success(`${name} — ${val}₾`);
+    } catch { toast.error('შეცდომა'); }
+    finally { setSavingDistrict(null); }
+  };
+
+  const setAllDistrictPrices = async (value) => {
+    const val = parseFloat(value);
+    if (isNaN(val) || val < 0) { toast.error('არასწორი ფასი'); return; }
+    try {
+      await adminService.updateAllDistrictPrices(districtPrices.map(d => ({ name: d.name, surcharge: val })));
+      setDistrictPrices(prev => prev.map(d => ({ ...d, surcharge: val })));
+      toast.success(`ყველა უბანი — ${val}₾`);
+    } catch { toast.error('შეცდომა'); }
+  };
+
   const deleteNurse = async (id, name) => {
     if (!window.confirm(`წაიშალოს ${name}? ეს სამუდამოდ წაშლის მათ ანგარიშს!`)) return;
     try {
@@ -130,6 +168,26 @@ export default function AdminPanel() {
     try {
       const res = await api.post(`/nurses/${id}/adjust-rating`, { delta });
       setNurses(prev => prev.map(n => n.id === id ? { ...n, rating: res.data.rating } : n));
+    } catch { toast.error('შეცდომა'); }
+  };
+
+  const saveEarnings = async (id) => {
+    const amount = parseFloat(earningsInput);
+    if (isNaN(amount) || amount < 0) { toast.error('არასწორი თანხა'); return; }
+    try {
+      const res = await api.put(`/admin/nurses/${id}/earnings`, { amount });
+      setNurses(prev => prev.map(n => n.id === id ? { ...n, realEarnings: res.data.realEarnings, manualEarnings: res.data.manualEarnings } : n));
+      setEditingEarnings(null);
+      toast.success('შემოსავალი განახლდა');
+    } catch { toast.error('შეცდომა'); }
+  };
+
+  const resetEarnings = async (id) => {
+    if (!window.confirm('გსურთ შემოსავლის გადაყენება? (ავტომატური გამოანგარიშება)')) return;
+    try {
+      const res = await api.delete(`/admin/nurses/${id}/earnings`);
+      setNurses(prev => prev.map(n => n.id === id ? { ...n, realEarnings: res.data.realEarnings, manualEarnings: null } : n));
+      toast.success('შემოსავალი გადაყენდა');
     } catch { toast.error('შეცდომა'); }
   };
 
@@ -249,10 +307,12 @@ export default function AdminPanel() {
   };
 
   const NURSE_STATUS = {
-    Active:  { cls: 'badge-active',   label: '🟢 აქტიური' },
-    Busy:    { cls: 'badge-busy',     label: '🟡 დაკავებული' },
-    Pending: { cls: 'badge-offline',  label: '⚫ მოლოდინი' },
-    Blocked: { cls: 'badge-vacation', label: '🔴 დაბლოკილი' },
+    Active:   { cls: 'badge-active',   label: '🟢 აქტიური' },
+    Busy:     { cls: 'badge-busy',     label: '🟡 დაკავებული' },
+    Vacation: { cls: 'badge-vacation', label: '🏖️ შვებულება' },
+    Offline:  { cls: 'badge-offline',  label: '⚫ ოფლაინ' },
+    Pending:  { cls: 'badge-offline',  label: '⏳ მოლოდინი' },
+    Blocked:  { cls: 'badge-vacation',  label: '🚫 დაბლოკილი' },
   };
 
   return (
@@ -462,12 +522,14 @@ export default function AdminPanel() {
                       {nurses
                         .filter(n => n.status === 'Active' && n.isVerified)
                         .sort((a, b) => {
-                          const aMatch = (a.districts || a.district || '').includes(o.district);
-                          const bMatch = (b.districts || b.district || '').includes(o.district);
+                          const districtList = n => (n.districts || n.district || '').split(',').map(d => d.trim());
+                          const aMatch = districtList(a).includes(o.district);
+                          const bMatch = districtList(b).includes(o.district);
                           return bMatch - aMatch;
                         })
                         .map(n => {
-                          const inDistrict = (n.districts || n.district || '').includes(o.district);
+                          const nurseDistricts = (n.districts || n.district || '').split(',').map(d => d.trim());
+                          const inDistrict = nurseDistricts.includes(o.district);
                           return (
                             <button key={n.id} onClick={() => assignNurse(o.id, n.id)}
                               className="btn btn-sm"
@@ -486,9 +548,26 @@ export default function AdminPanel() {
                     <button className="btn btn-outline btn-sm" onClick={() => setAssigningOrder(null)}>გაუქმება</button>
                   </div>
                 ) : (
-                  <button className="btn btn-primary btn-sm" onClick={() => setAssigningOrder(o.id)}>
-                    👩‍⚕️ ექთნის მინიჭება
-                  </button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-primary btn-sm" onClick={() => setAssigningOrder(o.id)}>
+                      👩‍⚕️ ექთნის მინიჭება
+                    </button>
+                    <button
+                      className="btn btn-sm"
+                      style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }}
+                      onClick={async () => {
+                        if (!window.confirm(`შეკვეთა #${o.id} გაუქმდეს?`)) return;
+                        try {
+                          await api.post(`/orders/${o.id}/cancel`, { reason: 'Admin-მა გააუქმა' });
+                          setPendingOrders(prev => prev.filter(x => x.id !== o.id));
+                          setStats(prev => prev ? { ...prev, pendingOrders: Math.max(0, (prev.pendingOrders || 1) - 1) } : prev);
+                          toast.success('შეკვეთა გაუქმდა');
+                        } catch { toast.error('შეცდომა'); }
+                      }}
+                    >
+                      ❌ გაუქმება
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -610,10 +689,66 @@ export default function AdminPanel() {
                           </div>
                         </div>
                       </td>
-                      <td><span className={`badge ${NURSE_STATUS[n.status]?.cls || 'badge-offline'}`} style={{ fontSize: 11 }}>{NURSE_STATUS[n.status]?.label || n.status}</span></td>
-                      <td className="col-hide-mobile">{n.district}</td>
+                      <td>
+                        <select
+                          value={n.status || 'Active'}
+                          onChange={e => changeNurseStatus(n.id, e.target.value)}
+                          style={{
+                            fontSize: 11, border: '1px solid #e2e8f0', borderRadius: 8,
+                            padding: '3px 6px', cursor: 'pointer', background: '#f8fafc',
+                            fontFamily: 'inherit', outline: 'none',
+                          }}
+                        >
+                          <option value="Active">🟢 აქტიური</option>
+                          <option value="Busy">🟡 დაკავებული</option>
+                          <option value="Vacation">🏖️ შვებულება</option>
+                          <option value="Offline">⚫ ოფლაინ</option>
+                          <option value="Blocked">🚫 დაბლოკილი</option>
+                          <option value="Pending">⏳ მოლოდინი</option>
+                        </select>
+                      </td>
+                      <td className="col-hide-mobile" style={{ fontSize: 12 }}>
+                        {(n.districts || n.district || '—').split(',').map(d => d.trim()).filter(Boolean).map(d => (
+                          <span key={d} style={{ display: 'inline-block', background: '#eff6ff', color: '#1d4ed8', borderRadius: 10, padding: '1px 7px', marginRight: 3, marginBottom: 2 }}>{d}</span>
+                        ))}
+                      </td>
                       <td className="col-hide-mobile">{n.totalOrders}</td>
-                      <td className="col-hide-mobile" style={{ fontWeight: 700, color: 'var(--secondary)' }}>{n.realEarnings ?? '—'}₾</td>
+                      <td className="col-hide-mobile">
+                        {editingEarnings === n.id ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={earningsInput}
+                              onChange={e => setEarningsInput(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') saveEarnings(n.id); if (e.key === 'Escape') setEditingEarnings(null); }}
+                              style={{ width: 80, padding: '2px 6px', fontSize: 12, border: '1px solid #cbd5e1', borderRadius: 4 }}
+                              autoFocus
+                            />
+                            <button onClick={() => saveEarnings(n.id)} style={{ padding: '2px 6px', fontSize: 12, background: '#dcfce7', color: '#15803d', border: 'none', borderRadius: 4, cursor: 'pointer' }}>✓</button>
+                            <button onClick={() => setEditingEarnings(null)} style={{ padding: '2px 6px', fontSize: 12, background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 4, cursor: 'pointer' }}>✕</button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontWeight: 700, color: n.manualEarnings != null ? '#7c3aed' : 'var(--secondary)' }}>
+                              {n.realEarnings ?? '—'}₾{n.manualEarnings != null && <span title="ხელით დაყენებული" style={{ fontSize: 10, marginLeft: 2 }}>✏️</span>}
+                            </span>
+                            <button
+                              onClick={() => { setEditingEarnings(n.id); setEarningsInput(n.realEarnings ?? ''); }}
+                              style={{ padding: '1px 5px', fontSize: 11, background: '#eff6ff', color: '#1d4ed8', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                              title="შემოსავლის შეცვლა"
+                            >✏</button>
+                            {n.manualEarnings != null && (
+                              <button
+                                onClick={() => resetEarnings(n.id)}
+                                style={{ padding: '1px 5px', fontSize: 11, background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                                title="ავტომატურ გამოანგარიშებაზე დაბრუნება"
+                              >↺</button>
+                            )}
+                          </div>
+                        )}
+                      </td>
                       <td className="col-hide-mobile">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <button
@@ -796,6 +931,40 @@ export default function AdminPanel() {
             </div>
           </div>
         )}
+        {/* DISTRICT PRICES */}
+        {activeTab === 'districts' && (
+          <div className="fade-in">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>📍 უბნის დამატებითი ფასი</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13, color: 'var(--gray)' }}>ყველა ერთდროულად:</span>
+                <input
+                  type="number" min="0" step="1" placeholder="₾"
+                  style={{ width: 70, padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14 }}
+                  id="all-district-input"
+                />
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setAllDistrictPrices(document.getElementById('all-district-input').value)}
+                >დაყენება</button>
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--gray)', marginBottom: 16 }}>
+              ეს თანხა ემატება სერვისის ფასს. 0₾ = დამატებითი საფასური არ არის.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+              {districtPrices.map(d => (
+                <DistrictPriceCard
+                  key={d.name || d.id}
+                  district={d}
+                  saving={savingDistrict === d.name}
+                  onSave={updateDistrictPrice}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* RATINGS */}
         {activeTab === 'ratings' && (
           <div className="fade-in">
@@ -903,6 +1072,35 @@ export default function AdminPanel() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function DistrictPriceCard({ district, saving, onSave }) {
+  const [val, setVal] = React.useState(district.surcharge ?? 0);
+
+  React.useEffect(() => { setVal(district.surcharge ?? 0); }, [district.surcharge]);
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ fontWeight: 700, fontSize: 15 }}>📍 {district.name}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input
+          type="number" min="0" step="1" value={val}
+          onChange={e => setVal(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && onSave(district.name, val)}
+          style={{ flex: 1, padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 15, fontWeight: 700 }}
+        />
+        <span style={{ fontSize: 14, color: 'var(--gray)', whiteSpace: 'nowrap' }}>₾ / გამოძახება</span>
+      </div>
+      <button
+        className="btn btn-primary btn-sm"
+        style={{ width: '100%' }}
+        disabled={saving}
+        onClick={() => onSave(district.name, val)}
+      >
+        {saving ? '⏳...' : '💾 შენახვა'}
+      </button>
     </div>
   );
 }

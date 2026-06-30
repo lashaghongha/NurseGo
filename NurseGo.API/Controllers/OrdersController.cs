@@ -83,40 +83,6 @@ public class OrdersController : ControllerBase
         _db.Orders.Add(order);
         await _db.SaveChangesAsync();
 
-        // ─── კონკრეტული ექთნის გამოძახება (პირდაპირი) ────────────────────────
-        if (req.PreferredNurseId.HasValue)
-        {
-            var preferred = await _db.Nurses.FindAsync(req.PreferredNurseId.Value);
-            if (preferred != null && preferred.Status == NurseStatus.Active && preferred.IsVerified)
-            {
-                order.NurseId = preferred.Id;
-                order.Status  = OrderStatus.Assigned;
-                preferred.Status = NurseStatus.Busy;
-                await _db.SaveChangesAsync();
-
-                await _hub.Clients.Group($"nurse-{preferred.Id}")
-                    .SendAsync("NewOrder", new {
-                        orderId = order.Id, service = service.Name,
-                        district = order.District, address = order.Address,
-                        totalPrice = order.TotalPrice, notes = order.Notes,
-                        isOtherDistrict = false, isDirect = true,
-                    });
-
-                _ = _push.SendToUser(preferred.UserId, "🔔 პირდაპირი გამოძახება!", $"{service.Name} — {order.District}", "/nurse/dashboard");
-
-                await _hub.Clients.Group($"order-{order.Id}")
-                    .SendAsync("StatusChanged", "Assigned");
-
-                var cust = await _db.Users.FindAsync(UserId);
-                if (cust != null)
-                    _ = Task.Run(() => _email.SendOrderConfirmation(
-                        cust.Email, cust.Name, order.Id, service.Name, order.TotalPrice));
-
-                return Ok(new { order.Id, order.TotalPrice, order.Status, nurseAssigned = true, direct = true });
-            }
-            // ექთანი Busy/Offline — fallback: ჩვეულებრივ broadcast
-        }
-
         // ─── ნაბიჯი 1: Broadcast იმ უბნის ყველა Active ექთანს ───────────────
         // EF-ში Contains() → SQL LIKE '%value%' — ზუსტი შედარება in-memory-ში
         var allActiveNurses = await _db.Nurses

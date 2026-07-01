@@ -19,7 +19,16 @@ export default function OrderChat({ orderId }) {
 
   useEffect(() => {
     const handler = (msg) => {
-      setMessages(prev => [...prev, msg]);
+      setMessages(prev => {
+        // Replace optimistic duplicate (temp id = Date.now(), real ids are small integers)
+        const optIdx = prev.findIndex(m => m.id > 1_000_000_000_000 && m.text === msg.text && m.senderRole === msg.senderRole);
+        if (optIdx !== -1) {
+          const next = [...prev];
+          next[optIdx] = msg;
+          return next;
+        }
+        return [...prev, msg];
+      });
       if (!open) setUnread(u => u + 1);
     };
     signalRService.on('NewChatMessage', handler);
@@ -35,11 +44,23 @@ export default function OrderChat({ orderId }) {
 
   const send = async () => {
     if (!text.trim() || sending) return;
+    const msgText = text.trim();
+    const tempId = Date.now();
     setSending(true);
+    setText('');
+    setMessages(prev => [...prev, {
+      id: tempId,
+      text: msgText,
+      senderRole: myRole,
+      senderName: 'მე',
+      sentAt: new Date().toISOString(),
+    }]);
     try {
-      await chatService.send(orderId, text.trim());
-      setText('');
-    } catch { }
+      await chatService.send(orderId, msgText);
+    } catch {
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setText(msgText);
+    }
     setSending(false);
   };
 

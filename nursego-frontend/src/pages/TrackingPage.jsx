@@ -121,7 +121,15 @@ export default function TrackingPage() {
           if (step) toast(`${step.icon} ${step.label}`, { duration: 3000 });
         });
         signalRService.on('NewChatMessage', (msg) => {
-          setChatMessages(prev => [...prev, msg]);
+          setChatMessages(prev => {
+            const optIdx = prev.findIndex(m => m.id > 1_000_000_000_000 && m.text === msg.text && m.senderRole === msg.senderRole);
+            if (optIdx !== -1) {
+              const next = [...prev];
+              next[optIdx] = msg;
+              return next;
+            }
+            return [...prev, msg];
+          });
           if (!showChat) toast('💬 ახალი შეტყობინება', { duration: 2000 });
         });
         signalRService.on('NurseLocation', (data) => {
@@ -191,11 +199,24 @@ export default function TrackingPage() {
   const sendChat = async (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
+    const msgText = chatInput.trim();
+    const tempId = Date.now();
+    setChatInput('');
+    setChatMessages(prev => [...prev, {
+      id: tempId,
+      text: msgText,
+      senderRole: 'Customer',
+      senderName: 'მე',
+      sentAt: new Date().toISOString(),
+    }]);
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     try {
-      await chatService.send(orderId, chatInput);
-      setChatInput('');
-      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-    } catch { toast.error('შეტყობინება ვერ გაიგზავნა'); }
+      await chatService.send(orderId, msgText);
+    } catch {
+      toast.error('შეტყობინება ვერ გაიგზავნა');
+      setChatMessages(prev => prev.filter(m => m.id !== tempId));
+      setChatInput(msgText);
+    }
   };
 
   const currentStepIndex = STATUS_STEPS.findIndex(s => s.key === order?.status);

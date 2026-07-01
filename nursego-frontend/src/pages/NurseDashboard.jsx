@@ -162,8 +162,9 @@ export default function NurseDashboard() {
         // 3. Available pending orders
         try {
           const avail = await ordersService.getAvailable();
-          const same  = (avail.sameDistrict  || []).map(o => ({ ...o, _isOther: false }));
-          const other = (avail.otherDistrict || []).map(o => ({ ...o, _isOther: true  }));
+          const byNewest = (a, b) => new Date(b.createdAt) - new Date(a.createdAt);
+          const same  = (avail.sameDistrict  || []).map(o => ({ ...o, _isOther: false })).sort(byNewest);
+          const other = (avail.otherDistrict || []).map(o => ({ ...o, _isOther: true  })).sort(byNewest);
           setPendingOrders([...same, ...other]);
         } catch (availErr) {
           console.error('Available orders load failed:', availErr);

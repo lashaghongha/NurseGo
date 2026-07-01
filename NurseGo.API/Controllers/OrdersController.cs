@@ -238,7 +238,11 @@ public class OrdersController : ControllerBase
         var nurse = await _db.Nurses.FirstOrDefaultAsync(n => n.UserId == UserId);
         if (nurse == null) return NotFound();
 
-        var nurseDistricts = (nurse.Districts ?? nurse.District ?? "")
+        // Use Districts (multi) if non-empty; fall back to District (home) if Districts is empty or null
+        var districtsStr = !string.IsNullOrWhiteSpace(nurse.Districts)
+            ? nurse.Districts
+            : (nurse.District ?? "");
+        var nurseDistricts = districtsStr
             .Split(',').Select(d => d.Trim()).Where(d => d.Length > 0).ToList();
 
         var allPending = await _db.Orders

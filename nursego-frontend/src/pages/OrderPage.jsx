@@ -84,34 +84,30 @@ export default function OrderPage() {
       }
     });
 
-    // Load district surcharges from API
+    // Set prefill district from DISTRICTS_BASE immediately (before API loads)
+    if (prefill.district) {
+      const d = DISTRICTS_BASE.find(d => d.name === prefill.district);
+      if (d) setSelectedDistrict({ ...d, surcharge: 0 });
+    }
+
+    // Load district surcharges from API, then sync selectedDistrict
     adminService.getDistrictPrices().then(prices => {
-      setDistricts(DISTRICTS_BASE.map(base => {
+      const loaded = DISTRICTS_BASE.map(base => {
         const fromApi = prices.find(p => p.name === base.name);
         return { ...base, surcharge: fromApi ? (fromApi.surcharge ?? 0) : 0 };
-      }));
+      });
+      setDistricts(loaded);
+      // Sync selectedDistrict surcharge with fresh API data
+      setSelectedDistrict(prev => {
+        if (!prev) return prev;
+        const updated = loaded.find(d => d.name === prev.name);
+        return updated || prev;
+      });
     }).catch(() => {
       // fallback: keep default 0 surcharges
     });
 
   }, []);
-
-  // When districts load from API, sync selectedDistrict's surcharge and handle prefill
-  useEffect(() => {
-    if (districts.some(d => d.surcharge !== 0)) {
-      // Update currently selected district with fresh surcharge
-      if (selectedDistrict) {
-        const updated = districts.find(d => d.name === selectedDistrict.name);
-        if (updated) setSelectedDistrict(updated);
-      }
-      // Handle prefill district
-      if (prefill.district && !selectedDistrict) {
-        const d = districts.find(d => d.name === prefill.district);
-        if (d) setSelectedDistrict(d);
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [districts]);
 
   const servicesBasePrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
   const distSurcharge  = selectedDistrict?.surcharge || 0;
@@ -443,13 +439,13 @@ export default function OrderPage() {
                         if (data[0]) {
                           const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
                           setPinCoords(coords);
-                          if (!selectedDistrict) setSelectedDistrict(nearestDistrict(coords.lat, coords.lng));
+                          if (!selectedDistrict) setSelectedDistrict(nearestDistrict(coords.lat, coords.lng, districts));
                         }
                       } catch {}
                     }
                     // სტეპ 3-ზე შესვლისას ექთნების ჩატვირთვა
                     if (step === 2) {
-                      const district = selectedDistrict?.name || (pinCoords ? nearestDistrict(pinCoords.lat, pinCoords.lng).name : null);
+                      const district = selectedDistrict?.name || (pinCoords ? nearestDistrict(pinCoords.lat, pinCoords.lng, districts).name : null);
                       if (district) {
                         setNursesLoading(true);
                         try {

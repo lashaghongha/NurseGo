@@ -71,6 +71,7 @@ export default function TrackingPage() {
   const [receiptDone, setReceiptDone]         = useState(false);
   const [submittingReceipt, setSubmittingReceipt] = useState(false);
   const chatEndRef = useRef(null);
+  const chatBoxRef = useRef(null);
   const pollRef = useRef(null);
 
   const fetchOrder = () => {
@@ -209,7 +210,9 @@ export default function TrackingPage() {
       senderName: 'მე',
       sentAt: new Date().toISOString(),
     }]);
-    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    setTimeout(() => {
+      if (chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+    }, 50);
     try {
       await chatService.send(orderId, msgText);
     } catch {
@@ -361,7 +364,7 @@ export default function TrackingPage() {
                   <div style={{ background: '#f8fafc', padding: '10px 14px', fontWeight: 700, fontSize: 13 }}>
                     💬 მიომწერე — {order.nurse?.user?.name || 'ექთანი'}
                   </div>
-                  <div style={{ height: 200, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div ref={chatBoxRef} style={{ height: 200, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {chatMessages.length === 0 ? (
                       <div style={{ textAlign: 'center', color: 'var(--gray)', fontSize: 13, marginTop: 40 }}>
                         შეტყობინება არ არის

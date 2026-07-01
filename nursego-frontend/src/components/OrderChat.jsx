@@ -11,6 +11,7 @@ export default function OrderChat({ orderId }) {
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const bottomRef = useRef(null);
+  const scrollBoxRef = useRef(null);
 
   useEffect(() => {
     if (!orderId) return;
@@ -38,7 +39,11 @@ export default function OrderChat({ orderId }) {
   useEffect(() => {
     if (open) {
       setUnread(0);
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      setTimeout(() => {
+        if (scrollBoxRef.current) {
+          scrollBoxRef.current.scrollTop = scrollBoxRef.current.scrollHeight;
+        }
+      }, 50);
     }
   }, [open, messages]);
 
@@ -103,7 +108,7 @@ export default function OrderChat({ orderId }) {
           background: '#f8fafc',
         }}>
           {/* Messages */}
-          <div style={{ height: 240, overflowY: 'auto', padding: '12px 12px 4px' }}>
+          <div ref={scrollBoxRef} style={{ height: 240, overflowY: 'auto', padding: '12px 12px 4px' }}>
             {messages.length === 0 && (
               <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 13, padding: '20px 0' }}>
                 შეტყობინება ჯერ არ არის

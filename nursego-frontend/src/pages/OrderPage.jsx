@@ -4,27 +4,30 @@ import { servicesService } from '../services/services.service';
 import { ordersService } from '../services/orders.service';
 import { paymentsService } from '../services/payments.service';
 import { nursesService } from '../services/nurses.service';
+import { adminService } from '../services/admin.service';
 import { useApp } from '../context/AppContext';
 import LocationPicker from '../components/LocationPicker';
 import toast from 'react-hot-toast';
 import './OrderPage.css';
 
-const DISTRICTS = [
-  { name: 'ვაკე',       surcharge: 0,  lat: 41.7010, lng: 44.7655 },
-  { name: 'საბურთალო', surcharge: 0,  lat: 41.7220, lng: 44.7490 },
-  { name: 'გლდანი',    surcharge: 10, lat: 41.7710, lng: 44.8050 },
-  { name: 'დიდუბე',    surcharge: 5,  lat: 41.7450, lng: 44.7730 },
-  { name: 'ნაძალადევი',surcharge: 5,  lat: 41.7610, lng: 44.7980 },
-  { name: 'ისანი',     surcharge: 5,  lat: 41.6900, lng: 44.8230 },
-  { name: 'სამგორი',   surcharge: 10, lat: 41.6750, lng: 44.8400 },
-  { name: 'კრწანისი',  surcharge: 5,  lat: 41.6860, lng: 44.7920 },
-  { name: 'დიღომი',    surcharge: 10, lat: 41.7850, lng: 44.7600 },
-  { name: 'ვარკეთილი', surcharge: 15, lat: 41.6620, lng: 44.8550 },
+// lat/lng only — surcharges are loaded from API
+const DISTRICTS_BASE = [
+  { name: 'ვაკე',       lat: 41.7010, lng: 44.7655 },
+  { name: 'საბურთალო', lat: 41.7220, lng: 44.7490 },
+  { name: 'გლდანი',    lat: 41.7710, lng: 44.8050 },
+  { name: 'დიდუბე',    lat: 41.7450, lng: 44.7730 },
+  { name: 'ნაძალადევი',lat: 41.7610, lng: 44.7980 },
+  { name: 'ისანი',     lat: 41.6900, lng: 44.8230 },
+  { name: 'სამგორი',   lat: 41.6750, lng: 44.8400 },
+  { name: 'კრწანისი',  lat: 41.6860, lng: 44.7920 },
+  { name: 'დიღომი',    lat: 41.7850, lng: 44.7600 },
+  { name: 'ვარკეთილი', lat: 41.6620, lng: 44.8550 },
 ];
 
-function nearestDistrict(lat, lng) {
-  let best = DISTRICTS[0], bestDist = Infinity;
-  for (const d of DISTRICTS) {
+function nearestDistrict(lat, lng, districts) {
+  const list = districts && districts.length ? districts : DISTRICTS_BASE;
+  let best = list[0], bestDist = Infinity;
+  for (const d of list) {
     const dist = Math.hypot(d.lat - lat, d.lng - lng);
     if (dist < bestDist) { bestDist = dist; best = d; }
   }
@@ -58,6 +61,7 @@ export default function OrderPage() {
   const [nursesLoading, setNursesLoading] = useState(false);
   const [chosenNurseId, setChosenNurseId]     = useState(prefill.nurseId   || null);
   const [chosenNurseName, setChosenNurseName] = useState(prefill.nurseName || null);
+  const [districts, setDistricts] = useState(DISTRICTS_BASE.map(d => ({ ...d, surcharge: 0 })));
 
   const toggleService = (s) => {
     setSelectedServices(prev =>
@@ -80,11 +84,34 @@ export default function OrderPage() {
       }
     });
 
-    if (prefill.district) {
-      const d = DISTRICTS.find(d => d.name === prefill.district);
-      if (d) setSelectedDistrict(d);
-    }
+    // Load district surcharges from API
+    adminService.getDistrictPrices().then(prices => {
+      setDistricts(DISTRICTS_BASE.map(base => {
+        const fromApi = prices.find(p => p.name === base.name);
+        return { ...base, surcharge: fromApi ? (fromApi.surcharge ?? 0) : 0 };
+      }));
+    }).catch(() => {
+      // fallback: keep default 0 surcharges
+    });
+
   }, []);
+
+  // When districts load from API, sync selectedDistrict's surcharge and handle prefill
+  useEffect(() => {
+    if (districts.some(d => d.surcharge !== 0)) {
+      // Update currently selected district with fresh surcharge
+      if (selectedDistrict) {
+        const updated = districts.find(d => d.name === selectedDistrict.name);
+        if (updated) setSelectedDistrict(updated);
+      }
+      // Handle prefill district
+      if (prefill.district && !selectedDistrict) {
+        const d = districts.find(d => d.name === prefill.district);
+        if (d) setSelectedDistrict(d);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [districts]);
 
   const servicesBasePrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
   const distSurcharge  = selectedDistrict?.surcharge || 0;
@@ -103,7 +130,7 @@ export default function OrderPage() {
     if (!currentUser) { navigate('/login'); return; }
     setLoading(true);
     const effectiveDistrict = selectedDistrict
-      || (pinCoords ? nearestDistrict(pinCoords.lat, pinCoords.lng) : DISTRICTS[0]);
+      || (pinCoords ? nearestDistrict(pinCoords.lat, pinCoords.lng, districts) : districts[0]);
 
     // ── Step 1: შეკვეთის შექმნა ──────────────────────────────────────────────
     let order;
@@ -217,7 +244,7 @@ export default function OrderPage() {
                       )}
                     </label>
                     <div className="district-picker">
-                      {DISTRICTS.map(d => (
+                      {districts.map(d => (
                         <div key={d.name}
                           className={`dp-item ${selectedDistrict?.name === d.name ? 'selected' : ''}`}
                           onClick={() => setSelectedDistrict(d)}>
@@ -234,12 +261,12 @@ export default function OrderPage() {
                       onChange={(coords) => {
                         setPinCoords(coords);
                         // pin დასმისთანავე nearest district ავტომატურად
-                        const d = nearestDistrict(coords.lat, coords.lng);
+                        const d = nearestDistrict(coords.lat, coords.lng, districts);
                         setSelectedDistrict(d);
                       }}
                       onAddressChange={(val) => setAddress(val)}
                       onDistrictDetected={(districtName) => {
-                        const d = DISTRICTS.find(x => x.name === districtName);
+                        const d = districts.find(x => x.name === districtName);
                         if (d) setSelectedDistrict(d);
                       }}
                     />

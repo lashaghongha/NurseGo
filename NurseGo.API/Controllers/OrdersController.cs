@@ -265,10 +265,10 @@ public class OrdersController : ControllerBase
         {
             var cutoff = DateTime.UtcNow.AddMinutes(-3);
             sameDistrict  = allPending
-                .Where(o => nurseDistricts.Contains(o.District.Trim(), StringComparer.OrdinalIgnoreCase))
+                .Where(o => nurseDistricts.Contains((o.District ?? "").Trim(), StringComparer.OrdinalIgnoreCase))
                 .ToList();
             otherDistrict = allPending
-                .Where(o => !nurseDistricts.Contains(o.District.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Where(o => !nurseDistricts.Contains((o.District ?? "").Trim(), StringComparer.OrdinalIgnoreCase)
                             && o.CreatedAt <= cutoff)
                 .ToList();
         }

@@ -124,6 +124,7 @@ try
             "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"Latitude\" DOUBLE PRECISION NOT NULL DEFAULT 0",
             "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"Longitude\" DOUBLE PRECISION NOT NULL DEFAULT 0",
             // Orders table
+            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"District\" TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedService\" TEXT",
             "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedPrice\" NUMERIC",
             "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedAt\" TIMESTAMP WITH TIME ZONE",
@@ -140,6 +141,7 @@ try
             "ALTER TABLE Nurses ADD COLUMN MonthlyFee REAL NOT NULL DEFAULT 0",
             "ALTER TABLE Nurses ADD COLUMN Latitude REAL NOT NULL DEFAULT 0",
             "ALTER TABLE Nurses ADD COLUMN Longitude REAL NOT NULL DEFAULT 0",
+            "ALTER TABLE Orders ADD COLUMN District TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE Orders ADD COLUMN ConfirmedService TEXT",
             "ALTER TABLE Orders ADD COLUMN ConfirmedPrice REAL",
             "ALTER TABLE Orders ADD COLUMN ConfirmedAt TEXT",

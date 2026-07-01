@@ -507,7 +507,7 @@ export default function AdminPanel() {
                       👤 {o.customer?.name} · 📍 {o.district}, {o.address}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--warning)', fontWeight: 600, marginTop: 4 }}>
-                      🕐 {Math.round((Date.now() - new Date(o.createdAt)) / 60000)} წუთია ელოდება
+                      🕐 {new Date(o.createdAt).toLocaleString('ka-GE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · {Math.round((Date.now() - new Date(o.createdAt)) / 60000)} წუთია ელოდება
                     </div>
                   </div>
                   <div style={{ fontWeight: 900, fontSize: 22, color: 'var(--primary)' }}>{o.totalPrice}₾</div>

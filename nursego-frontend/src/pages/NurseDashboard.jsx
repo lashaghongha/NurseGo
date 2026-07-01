@@ -512,7 +512,7 @@ export default function NurseDashboard() {
                     </div>
                     <div className="ic-details">
                       <div>📍 <strong>{order.district}</strong>, {order.address}</div>
-                      <div>🕐 შეკვეთა #{order.id} · {new Date(order.createdAt).toLocaleTimeString('ka-GE', { hour: '2-digit', minute: '2-digit' })}</div>
+                      <div>🕐 შეკვეთა #{order.id} · {new Date(order.createdAt).toLocaleString('ka-GE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
                       {order.notes && <div>💬 {order.notes}</div>}
                       {order._isOther && (
                         <div style={{ fontSize: 12, color: 'var(--warning)', fontWeight: 600, marginTop: 4 }}>

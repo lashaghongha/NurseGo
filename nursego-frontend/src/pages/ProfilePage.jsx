@@ -579,7 +579,7 @@ export default function ProfilePage() {
                             </div>
                           )}
                           <div style={{ fontSize:12, color:'var(--gray)', marginTop:2 }}>
-                            {new Date(o.createdAt).toLocaleDateString('ka-GE')}
+                            🕐 {new Date(o.createdAt).toLocaleString('ka-GE', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}
                           </div>
                         </div>
                         <div style={{ textAlign:'right', flexShrink:0 }}>

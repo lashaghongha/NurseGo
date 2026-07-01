@@ -18,15 +18,13 @@ public class OrdersController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IHubContext<OrderHub> _hub;
     private readonly EmailService _email;
-    private readonly IServiceScopeFactory _scopeFactory;
     private readonly PushService _push;
 
-    public OrdersController(AppDbContext db, IHubContext<OrderHub> hub, EmailService email, IServiceScopeFactory scopeFactory, PushService push)
+    public OrdersController(AppDbContext db, IHubContext<OrderHub> hub, EmailService email, PushService push)
     {
         _db = db;
         _hub = hub;
         _email = email;
-        _scopeFactory = scopeFactory;
         _push = push;
     }
 
@@ -120,41 +118,25 @@ public class OrdersController : ControllerBase
             _ = Task.Run(() => _email.SendOrderConfirmation(
                 customer.Email, customer.Name, order.Id, service.Name, order.TotalPrice));
 
-        // ─── ნაბიჯი 2: 3 წუთში თუ კიდევ Pending — broadcast სხვა ექთნებსაც ─
-        var orderId = order.Id;
-        _ = Task.Run(async () =>
+        // ─── ნაბიჯი 2: სხვა უბნის ექთნებსაც ეცნობება დაუყოვნებლივ ──────────
+        var otherNurses = allActiveNurses
+            .Where(n => !districtNurses.Contains(n))
+            .ToList();
+
+        var otherPayload = new {
+            orderId    = order.Id,
+            service    = service.Name,
+            district   = order.District,
+            address    = order.Address,
+            totalPrice = order.TotalPrice,
+            notes      = order.Notes,
+            isOtherDistrict = true,
+        };
+
+        foreach (var n in otherNurses)
         {
-            await Task.Delay(TimeSpan.FromMinutes(3));
-            // ახალი scope-ი საჭიროა DbContext-ისთვის
-            using var scope = _scopeFactory.CreateScope();
-            var db  = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var hub = scope.ServiceProvider.GetRequiredService<IHubContext<OrderHub>>();
-
-            var o = await db.Orders.FindAsync(orderId);
-            if (o == null || o.Status != OrderStatus.Pending) return; // უკვე მიღებულია
-
-            var otherNurses = await db.Nurses
-                .Where(n => n.Status == NurseStatus.Active && n.IsVerified &&
-                            !n.Districts.Contains(o.District) && n.District != o.District)
-                .ToListAsync();
-
-            var otherPayload = new {
-                orderId    = o.Id,
-                service    = service.Name,
-                district   = o.District,
-                address    = o.Address,
-                totalPrice = o.TotalPrice,
-                notes      = o.Notes,
-                isOtherDistrict = true,
-            };
-
-            var push = scope.ServiceProvider.GetRequiredService<PushService>();
-            foreach (var n in otherNurses)
-            {
-                await hub.Clients.Group($"nurse-{n.Id}").SendAsync("NewOrder", otherPayload);
-                _ = push.SendToUser(n.UserId, "🔔 ახალი შეკვეთა!", $"{service.Name} — {o.District} (სხვა უბანი)", "/nurse/dashboard");
-            }
-        });
+            await _hub.Clients.Group($"nurse-{n.Id}").SendAsync("NewOrder", otherPayload);
+        }
 
         return Ok(new { order.Id, order.TotalPrice, order.Status, nurseAssigned = false });
     }
@@ -263,13 +245,11 @@ public class OrdersController : ControllerBase
         }
         else
         {
-            var cutoff = DateTime.UtcNow.AddMinutes(-3);
             sameDistrict  = allPending
                 .Where(o => nurseDistricts.Contains((o.District ?? "").Trim(), StringComparer.OrdinalIgnoreCase))
                 .ToList();
             otherDistrict = allPending
-                .Where(o => !nurseDistricts.Contains((o.District ?? "").Trim(), StringComparer.OrdinalIgnoreCase)
-                            && o.CreatedAt <= cutoff)
+                .Where(o => !nurseDistricts.Contains((o.District ?? "").Trim(), StringComparer.OrdinalIgnoreCase))
                 .ToList();
         }
 

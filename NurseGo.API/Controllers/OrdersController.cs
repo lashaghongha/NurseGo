@@ -30,6 +30,36 @@ public class OrdersController : ControllerBase
 
     private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+    // ─── GET /api/orders/_diag ── TEMP: სვეტების არსებობის შემოწმება + migration ─
+    [HttpGet("_diag")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Diag()
+    {
+        var results = new Dictionary<string, object>();
+        try
+        {
+            var cols = await _db.Database
+                .SqlQueryRaw<string>("SELECT column_name FROM information_schema.columns WHERE lower(table_name) = 'orders'")
+                .ToListAsync();
+            results["ordersColumns"] = cols;
+            results["hasNurseProcedure"] = cols.Any(c => string.Equals(c, "NurseProcedure", StringComparison.OrdinalIgnoreCase));
+            results["hasNurseAmount"] = cols.Any(c => string.Equals(c, "NurseAmount", StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception ex) { results["schemaError"] = ex.Message; }
+
+        foreach (var sql in new[]
+        {
+            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"NurseProcedure\" TEXT",
+            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"NurseAmount\" NUMERIC",
+            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"ManualEarnings\" NUMERIC",
+        })
+        {
+            try { await _db.Database.ExecuteSqlRawAsync(sql); results["ran:" + sql] = "ok"; }
+            catch (Exception ex) { results["ran:" + sql] = "FAIL " + ex.Message; }
+        }
+        return Ok(results);
+    }
+
     // ─── POST /api/orders ────────────────────────────────────────────────────
     [HttpPost]
     [Authorize(Roles = "Customer")]

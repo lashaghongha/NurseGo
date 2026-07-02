@@ -109,6 +109,17 @@ try
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // Railway free-tier cold-start: DB შეიძლება ჯერ არ იყოს მიღწევადი. დაველოდოთ
+    // კავშირს რამდენიმე ცდით, თორემ migration-ები ჩუმად გამოტოვდება და მოდელის
+    // ახალი სვეტები (მაგ. NurseProcedure/NurseAmount) DB-ში აღარ დაემატება →
+    // ყოველი INSERT/SELECT 500-ს აბრუნებს.
+    for (var attempt = 1; attempt <= 10 && !db.Database.CanConnect(); attempt++)
+    {
+        Console.WriteLine($"[DB WAIT] not reachable yet, attempt {attempt}/10");
+        System.Threading.Thread.Sleep(2000);
+    }
+
     db.Database.EnsureCreated();
 
     // ახალი სვეტები — SQLite და PostgreSQL ორივე. IF NOT EXISTS გარანტიას იძლევა

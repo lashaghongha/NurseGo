@@ -33,4 +33,7 @@ export const ordersService = {
 
   confirmReceipt: (id, serviceName, pricePaid) =>
     api.post(`/orders/${id}/confirm-receipt`, { serviceName, pricePaid }).then(r => r.data),
+
+  complete: (id, procedure, amount) =>
+    api.post(`/orders/${id}/complete`, { procedure, amount }).then(r => r.data),
 };

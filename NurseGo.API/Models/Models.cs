@@ -78,6 +78,9 @@ public class Order
     public string? ConfirmedService { get; set; }
     public decimal? ConfirmedPrice { get; set; }
     public DateTime? ConfirmedAt { get; set; }
+    // ექთნის ანგარიში დასრულებისას (სავალდებულო)
+    public string? NurseProcedure { get; set; }
+    public decimal? NurseAmount { get; set; }
 }
 
 public class Payment
@@ -169,6 +172,7 @@ public record CreateOrderRequest(int ServiceId, string Address, string District,
 public record UpdateNurseStatusRequest(string Status);
 public record UpdateOrderStatusRequest(string Status);
 public record ConfirmReceiptRequest(string ServiceName, decimal PricePaid);
+public record CompleteOrderRequest(string Procedure, decimal Amount);
 public record SubmitRatingRequest(int OrderId, int NurseId, int Stars, string Comment);
 public record UpdateServicePriceRequest(decimal Price);
 public record UpdateDistrictPriceRequest(decimal Surcharge);

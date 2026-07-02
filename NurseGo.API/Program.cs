@@ -130,6 +130,8 @@ try
             "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedAt\" TIMESTAMP WITH TIME ZONE",
             "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"Latitude\" DOUBLE PRECISION",
             "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"Longitude\" DOUBLE PRECISION",
+            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"NurseProcedure\" TEXT",
+            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"NurseAmount\" NUMERIC",
             "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"ManualEarnings\" NUMERIC",
         }
         : new[]
@@ -147,6 +149,8 @@ try
             "ALTER TABLE Orders ADD COLUMN ConfirmedAt TEXT",
             "ALTER TABLE Orders ADD COLUMN Latitude REAL",
             "ALTER TABLE Orders ADD COLUMN Longitude REAL",
+            "ALTER TABLE Orders ADD COLUMN NurseProcedure TEXT",
+            "ALTER TABLE Orders ADD COLUMN NurseAmount REAL",
             "ALTER TABLE Nurses ADD COLUMN ManualEarnings REAL",
         };
 

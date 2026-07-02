@@ -443,6 +443,35 @@ public class OrdersController : ControllerBase
         return Ok(new { message = "დადასტურება შენახულია!" });
     }
 
+    // ─── POST /api/orders/{id}/complete ──────────────────────────────────────
+    // ექთანი ასრულებს შეკვეთას და სავალდებულოდ ავსებს პროცედურას და აღებულ თანხას
+    [HttpPost("{id}/complete")]
+    [Authorize(Roles = "Nurse,Admin")]
+    public async Task<IActionResult> CompleteWithReport(int id, [FromBody] CompleteOrderRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Procedure))
+            return BadRequest(new { message = "მიუთითეთ ჩატარებული პროცედურა" });
+        if (req.Amount <= 0)
+            return BadRequest(new { message = "მიუთითეთ აღებული თანხა" });
+
+        var order = await _db.Orders.Include(o => o.Nurse).FirstOrDefaultAsync(o => o.Id == id);
+        if (order == null) return NotFound();
+
+        order.Status          = OrderStatus.Completed;
+        order.CompletedAt     = DateTime.UtcNow;
+        order.NurseProcedure  = req.Procedure.Trim();
+        order.NurseAmount     = req.Amount;
+        if (order.Nurse != null)
+        {
+            order.Nurse.Status = NurseStatus.Active;
+            order.Nurse.TotalOrders += 1;
+        }
+        await _db.SaveChangesAsync();
+
+        try { await _hub.Clients.Group($"order-{id}").SendAsync("StatusChanged", "Completed"); } catch { }
+        return Ok(new { message = "შეკვეთა დასრულდა" });
+    }
+
     // ─── POST /api/orders/{id}/rate ──────────────────────────────────────────
     [HttpPost("{id}/rate")]
     [Authorize(Roles = "Customer")]

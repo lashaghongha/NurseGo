@@ -118,6 +118,10 @@ export default function NurseDashboard() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [historyOrders, setHistoryOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showReport, setShowReport] = useState(false);
+  const [reportProcedure, setReportProcedure] = useState('');
+  const [reportAmount, setReportAmount] = useState('');
+  const [submittingReport, setSubmittingReport] = useState(false);
   const pollRef = useRef(null);
 
   // Load nurse profile + orders on mount
@@ -304,22 +308,45 @@ export default function NurseDashboard() {
     const flow = STATUS_FLOW.find(s => s.status === activeOrder.status);
     if (!flow?.next) return;
 
+    // დასრულებამდე ექთანმა სავალდებულოდ უნდა შეავსოს ანგარიში
+    if (flow.next === 'Completed') {
+      setReportProcedure(activeOrder.service?.name || '');
+      setReportAmount(activeOrder.totalPrice != null ? String(activeOrder.totalPrice) : '');
+      setShowReport(true);
+      return;
+    }
+
     try {
       await ordersService.updateStatus(activeOrder.id, flow.next);
       if (flow.next === 'EnRoute') {
         startEnRouteGps(nurseId); // permission asked once; browser remembers
       }
-      if (flow.next === 'Completed') {
-        stopEnRouteGps();
-        setHistoryOrders(prev => [{ ...activeOrder, status: 'Completed' }, ...prev]);
-        setActiveOrder(null);
-        toast.success('შეკვეთა დასრულდა! 🎉');
-      } else {
-        setActiveOrder(prev => ({ ...prev, status: flow.next }));
-        toast.success(`სტატუსი: ${STATUS_FLOW.find(s => s.status === flow.next)?.label}`);
-      }
+      setActiveOrder(prev => ({ ...prev, status: flow.next }));
+      toast.success(`სტატუსი: ${STATUS_FLOW.find(s => s.status === flow.next)?.label}`);
     } catch {
       toast.error('სტატუსი ვერ განახლდა');
+    }
+  };
+
+  const submitReport = async () => {
+    if (!activeOrder || submittingReport) return;
+    const procedure = reportProcedure.trim();
+    const amount = parseFloat(reportAmount);
+    if (!procedure) { toast.error('მიუთითეთ ჩატარებული პროცედურა'); return; }
+    if (!(amount > 0)) { toast.error('მიუთითეთ აღებული თანხა'); return; }
+
+    setSubmittingReport(true);
+    try {
+      await ordersService.complete(activeOrder.id, procedure, amount);
+      stopEnRouteGps();
+      setHistoryOrders(prev => [{ ...activeOrder, status: 'Completed', nurseProcedure: procedure, nurseAmount: amount }, ...prev]);
+      setActiveOrder(null);
+      setShowReport(false);
+      toast.success('შეკვეთა დასრულდა! 🎉');
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'შეკვეთა ვერ დასრულდა');
+    } finally {
+      setSubmittingReport(false);
     }
   };
 
@@ -489,6 +516,41 @@ export default function NurseDashboard() {
               </div>
             );
           })()}
+
+          {showReport && (
+            <div className="modal-overlay" onClick={() => !submittingReport && setShowReport(false)}>
+              <div className="modal-card card" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+                <h3 style={{ marginTop: 0 }}>✅ შეკვეთის დასრულება</h3>
+                <p style={{ color: 'var(--gray)', fontSize: 14, marginTop: -4 }}>
+                  სავალდებულოა მიუთითოთ რა პროცედურა ჩაატარეთ და რა თანხა აიღეთ.
+                </p>
+                <label style={{ display: 'block', fontWeight: 700, fontSize: 14, marginBottom: 6 }}>ჩატარებული პროცედურა *</label>
+                <textarea
+                  value={reportProcedure}
+                  onChange={e => setReportProcedure(e.target.value)}
+                  placeholder="მაგ: ინექცია, წნევის გაზომვა, ჭრილობის დამუშავება..."
+                  rows={3}
+                  style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid var(--border)', marginBottom: 12, resize: 'vertical' }}
+                />
+                <label style={{ display: 'block', fontWeight: 700, fontSize: 14, marginBottom: 6 }}>აღებული თანხა (₾) *</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={reportAmount}
+                  onChange={e => setReportAmount(e.target.value)}
+                  placeholder="0"
+                  style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn" onClick={() => setShowReport(false)} disabled={submittingReport} style={{ flex: 1, justifyContent: 'center' }}>გაუქმება</button>
+                  <button className="btn btn-primary" onClick={submitReport} disabled={submittingReport} style={{ flex: 2, justifyContent: 'center', background: '#10b981' }}>
+                    {submittingReport ? 'იგზავნება...' : '✅ დასრულება'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="dash-columns">
             <div>

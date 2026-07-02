@@ -803,14 +803,14 @@ export default function AdminPanel() {
                       <td style={{ fontWeight: 600, fontSize: 13 }}>
                         {o.customer?.name}
                         <div className="col-show-mobile" style={{ fontSize: 11, color: 'var(--gray)', fontWeight: 400 }}>
-                          {o.confirmedService || o.service?.name}
-                          {o.confirmedPrice != null && ` — ${o.confirmedPrice}₾`}
+                          {o.nurseProcedure || o.confirmedService || o.service?.name}
+                          {(o.nurseAmount ?? o.confirmedPrice) != null && ` — ${o.nurseAmount ?? o.confirmedPrice}₾`}
                         </div>
                       </td>
                       <td className="col-hide-mobile">{o.service?.name}</td>
                       <td className="col-hide-mobile" style={{ fontSize: 13 }}>
-                        {o.confirmedService ? (
-                          <span style={{ color: 'var(--text, #1e293b)', fontWeight: 600 }}>{o.confirmedService}</span>
+                        {(o.nurseProcedure || o.confirmedService) ? (
+                          <span style={{ color: 'var(--text, #1e293b)', fontWeight: 600 }}>{o.nurseProcedure || o.confirmedService}</span>
                         ) : (
                           <span style={{ color: 'var(--gray)' }}>—</span>
                         )}
@@ -822,9 +822,9 @@ export default function AdminPanel() {
                         </span>
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>
-                        {o.confirmedPrice != null ? (
+                        {(o.nurseAmount ?? o.confirmedPrice) != null ? (
                           <>
-                            <span style={{ fontWeight: 700, color: 'var(--success, #10b981)' }}>{o.confirmedPrice}₾</span>
+                            <span style={{ fontWeight: 700, color: 'var(--success, #10b981)' }}>{o.nurseAmount ?? o.confirmedPrice}₾</span>
                             <div style={{ fontSize: 11, color: 'var(--gray)' }}>შეკვ. {o.totalPrice}₾</div>
                           </>
                         ) : (

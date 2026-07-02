@@ -181,6 +181,18 @@ try
         try { db.Database.ExecuteSqlRaw(districtTableSql.Replace("\"DistrictPrices\"", "district_prices")); } catch { }
     }
 
+    // ─── Ratings table ───────────────────────────────────────────────────────
+    // EnsureCreated() არ ამატებს ახალ ცხრილებს უკვე არსებულ DB-ში, ამიტომ
+    // Ratings-ს ხელით ვქმნით (DistrictPrices-ის ანალოგიურად).
+    var ratingsTableSql = db.Database.IsNpgsql()
+        ? "CREATE TABLE IF NOT EXISTS \"Ratings\" (\"Id\" SERIAL PRIMARY KEY, \"OrderId\" INTEGER NOT NULL DEFAULT 0, \"NurseId\" INTEGER NOT NULL DEFAULT 0, \"CustomerId\" INTEGER NOT NULL DEFAULT 0, \"Stars\" INTEGER NOT NULL DEFAULT 0, \"Comment\" TEXT NOT NULL DEFAULT '', \"CreatedAt\" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now())"
+        : "CREATE TABLE IF NOT EXISTS Ratings (Id INTEGER PRIMARY KEY AUTOINCREMENT, OrderId INTEGER NOT NULL DEFAULT 0, NurseId INTEGER NOT NULL DEFAULT 0, CustomerId INTEGER NOT NULL DEFAULT 0, Stars INTEGER NOT NULL DEFAULT 0, Comment TEXT NOT NULL DEFAULT '', CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)";
+    try { db.Database.ExecuteSqlRaw(ratingsTableSql); Console.WriteLine("[MIGRATION OK] Ratings table"); }
+    catch (Exception ex) {
+        Console.WriteLine($"[MIGRATION SKIP Ratings] {ex.Message[..Math.Min(120, ex.Message.Length)]}");
+        try { db.Database.ExecuteSqlRaw(ratingsTableSql.Replace("\"Ratings\"", "ratings")); } catch { }
+    }
+
     // ─── Seed: District Prices (all 5 GEL) ──────────────────────────────────
     var allDistricts = new[] { "ვაკე", "საბურთალო", "გლდანი", "დიდუბე", "ნაძალადევი", "ისანი", "სამგორი", "კრწანისი", "დიღომი", "ვარკეთილი" };
     if (!db.DistrictPrices.Any())

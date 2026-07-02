@@ -127,23 +127,26 @@ try
     var columnMigrations = db.Database.IsNpgsql()
         ? new[]
         {
+            // ⚠️ ცხრილები "nursego" schema-შია (HasDefaultSchema). search_path=public,
+            // ამიტომ სახელი აუცილებლად schema-კვალიფიცირებული უნდა იყოს, თორემ ALTER
+            // გაზიარებული DB-ის public.Orders/Nurses-ს (სხვა აპი) მოხვდება.
             // Nurses table
-            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"PhotoUrl\" TEXT NOT NULL DEFAULT ''",
-            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"Districts\" TEXT NOT NULL DEFAULT ''",
-            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"IsPremium\" BOOLEAN NOT NULL DEFAULT FALSE",
-            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"MonthlyFee\" NUMERIC NOT NULL DEFAULT 0",
-            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"Latitude\" DOUBLE PRECISION NOT NULL DEFAULT 0",
-            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"Longitude\" DOUBLE PRECISION NOT NULL DEFAULT 0",
+            "ALTER TABLE \"nursego\".\"Nurses\" ADD COLUMN IF NOT EXISTS \"PhotoUrl\" TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE \"nursego\".\"Nurses\" ADD COLUMN IF NOT EXISTS \"Districts\" TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE \"nursego\".\"Nurses\" ADD COLUMN IF NOT EXISTS \"IsPremium\" BOOLEAN NOT NULL DEFAULT FALSE",
+            "ALTER TABLE \"nursego\".\"Nurses\" ADD COLUMN IF NOT EXISTS \"MonthlyFee\" NUMERIC NOT NULL DEFAULT 0",
+            "ALTER TABLE \"nursego\".\"Nurses\" ADD COLUMN IF NOT EXISTS \"Latitude\" DOUBLE PRECISION NOT NULL DEFAULT 0",
+            "ALTER TABLE \"nursego\".\"Nurses\" ADD COLUMN IF NOT EXISTS \"Longitude\" DOUBLE PRECISION NOT NULL DEFAULT 0",
             // Orders table
-            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"District\" TEXT NOT NULL DEFAULT ''",
-            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedService\" TEXT",
-            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedPrice\" NUMERIC",
-            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedAt\" TIMESTAMP WITH TIME ZONE",
-            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"Latitude\" DOUBLE PRECISION",
-            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"Longitude\" DOUBLE PRECISION",
-            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"NurseProcedure\" TEXT",
-            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"NurseAmount\" NUMERIC",
-            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"ManualEarnings\" NUMERIC",
+            "ALTER TABLE \"nursego\".\"Orders\" ADD COLUMN IF NOT EXISTS \"District\" TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE \"nursego\".\"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedService\" TEXT",
+            "ALTER TABLE \"nursego\".\"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedPrice\" NUMERIC",
+            "ALTER TABLE \"nursego\".\"Orders\" ADD COLUMN IF NOT EXISTS \"ConfirmedAt\" TIMESTAMP WITH TIME ZONE",
+            "ALTER TABLE \"nursego\".\"Orders\" ADD COLUMN IF NOT EXISTS \"Latitude\" DOUBLE PRECISION",
+            "ALTER TABLE \"nursego\".\"Orders\" ADD COLUMN IF NOT EXISTS \"Longitude\" DOUBLE PRECISION",
+            "ALTER TABLE \"nursego\".\"Orders\" ADD COLUMN IF NOT EXISTS \"NurseProcedure\" TEXT",
+            "ALTER TABLE \"nursego\".\"Orders\" ADD COLUMN IF NOT EXISTS \"NurseAmount\" NUMERIC",
+            "ALTER TABLE \"nursego\".\"Nurses\" ADD COLUMN IF NOT EXISTS \"ManualEarnings\" NUMERIC",
         }
         : new[]
         {
@@ -187,7 +190,7 @@ try
 
     // ─── DistrictPrices table ────────────────────────────────────────────────
     var districtTableSql = db.Database.IsNpgsql()
-        ? "CREATE TABLE IF NOT EXISTS \"DistrictPrices\" (\"Id\" SERIAL PRIMARY KEY, \"Name\" TEXT NOT NULL DEFAULT '', \"Surcharge\" NUMERIC NOT NULL DEFAULT 0)"
+        ? "CREATE TABLE IF NOT EXISTS \"nursego\".\"DistrictPrices\" (\"Id\" SERIAL PRIMARY KEY, \"Name\" TEXT NOT NULL DEFAULT '', \"Surcharge\" NUMERIC NOT NULL DEFAULT 0)"
         : "CREATE TABLE IF NOT EXISTS DistrictPrices (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL DEFAULT '', Surcharge REAL NOT NULL DEFAULT 0)";
     try { db.Database.ExecuteSqlRaw(districtTableSql); Console.WriteLine("[MIGRATION OK] DistrictPrices table"); }
     catch (Exception ex) {
@@ -200,7 +203,7 @@ try
     // EnsureCreated() არ ამატებს ახალ ცხრილებს უკვე არსებულ DB-ში, ამიტომ
     // Ratings-ს ხელით ვქმნით (DistrictPrices-ის ანალოგიურად).
     var ratingsTableSql = db.Database.IsNpgsql()
-        ? "CREATE TABLE IF NOT EXISTS \"Ratings\" (\"Id\" SERIAL PRIMARY KEY, \"OrderId\" INTEGER NOT NULL DEFAULT 0, \"NurseId\" INTEGER NOT NULL DEFAULT 0, \"CustomerId\" INTEGER NOT NULL DEFAULT 0, \"Stars\" INTEGER NOT NULL DEFAULT 0, \"Comment\" TEXT NOT NULL DEFAULT '', \"CreatedAt\" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now())"
+        ? "CREATE TABLE IF NOT EXISTS \"nursego\".\"Ratings\" (\"Id\" SERIAL PRIMARY KEY, \"OrderId\" INTEGER NOT NULL DEFAULT 0, \"NurseId\" INTEGER NOT NULL DEFAULT 0, \"CustomerId\" INTEGER NOT NULL DEFAULT 0, \"Stars\" INTEGER NOT NULL DEFAULT 0, \"Comment\" TEXT NOT NULL DEFAULT '', \"CreatedAt\" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now())"
         : "CREATE TABLE IF NOT EXISTS Ratings (Id INTEGER PRIMARY KEY AUTOINCREMENT, OrderId INTEGER NOT NULL DEFAULT 0, NurseId INTEGER NOT NULL DEFAULT 0, CustomerId INTEGER NOT NULL DEFAULT 0, Stars INTEGER NOT NULL DEFAULT 0, Comment TEXT NOT NULL DEFAULT '', CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)";
     try { db.Database.ExecuteSqlRaw(ratingsTableSql); Console.WriteLine("[MIGRATION OK] Ratings table"); }
     catch (Exception ex) {

@@ -30,54 +30,6 @@ public class OrdersController : ControllerBase
 
     private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-    // ─── GET /api/orders/_diag ── TEMP: სვეტების არსებობის შემოწმება + migration ─
-    [HttpGet("_diag")]
-    [AllowAnonymous]
-    public async Task<IActionResult> Diag()
-    {
-        var results = new Dictionary<string, object>();
-
-        try { results["searchPath"] = (await _db.Database.SqlQueryRaw<string>("SELECT current_schema()").ToListAsync()).FirstOrDefault() ?? ""; }
-        catch (Exception ex) { results["searchPathError"] = ex.Message; }
-
-        // NurseGo-ს Orders ცხრილი იმ schema-შია, სადაც "CustomerId" სვეტი არსებობს
-        string? nurseGoSchema = null;
-        try
-        {
-            nurseGoSchema = (await _db.Database
-                .SqlQueryRaw<string>("SELECT table_schema FROM information_schema.columns WHERE table_name = 'Orders' AND column_name = 'CustomerId' LIMIT 1")
-                .ToListAsync()).FirstOrDefault();
-            results["nurseGoOrdersSchema"] = nurseGoSchema ?? "(not found)";
-        }
-        catch (Exception ex) { results["nurseGoSchemaError"] = ex.Message; }
-
-        // ზუსტ schema-ში დავამატოთ ნაკლული სვეტები
-        if (!string.IsNullOrEmpty(nurseGoSchema))
-        {
-            foreach (var (col, type) in new[] { ("NurseProcedure", "TEXT"), ("NurseAmount", "NUMERIC") })
-            {
-                var sql = $"ALTER TABLE \"{nurseGoSchema}\".\"Orders\" ADD COLUMN IF NOT EXISTS \"{col}\" {type}";
-                try { await _db.Database.ExecuteSqlRawAsync(sql); results["heal:" + col] = "ok -> " + nurseGoSchema; }
-                catch (Exception ex) { results["heal:" + col] = "FAIL " + ex.Message; }
-            }
-        }
-
-        // Create()-ის query-ების რეპროდუქცია — რომელი ტყდება?
-        try { var s = await _db.Services.FirstOrDefaultAsync(); results["query:Services"] = "ok"; }
-        catch (Exception ex) { results["query:Services"] = "FAIL " + ex.Message; }
-
-        try { var n = await _db.Nurses.Take(1).ToListAsync(); results["query:Nurses"] = "ok"; }
-        catch (Exception ex) { results["query:Nurses"] = "FAIL " + (ex.InnerException?.Message ?? ex.Message); }
-
-        try { var o = await _db.Orders.Take(1).ToListAsync(); results["query:Orders"] = "ok"; }
-        catch (Exception ex) { results["query:Orders"] = "FAIL " + (ex.InnerException?.Message ?? ex.Message); }
-
-        try { var dp = await _db.DistrictPrices.Take(1).ToListAsync(); results["query:DistrictPrices"] = "ok"; }
-        catch (Exception ex) { results["query:DistrictPrices"] = "FAIL " + (ex.InnerException?.Message ?? ex.Message); }
-
-        return Ok(results);
-    }
-
     // ─── POST /api/orders ────────────────────────────────────────────────────
     [HttpPost]
     [Authorize(Roles = "Customer")]

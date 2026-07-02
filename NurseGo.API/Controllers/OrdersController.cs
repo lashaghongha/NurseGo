@@ -47,16 +47,28 @@ public class OrdersController : ControllerBase
         }
         catch (Exception ex) { results["schemaError"] = ex.Message; }
 
-        foreach (var sql in new[]
+        try
         {
-            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"NurseProcedure\" TEXT",
-            "ALTER TABLE \"Orders\" ADD COLUMN IF NOT EXISTS \"NurseAmount\" NUMERIC",
-            "ALTER TABLE \"Nurses\" ADD COLUMN IF NOT EXISTS \"ManualEarnings\" NUMERIC",
-        })
-        {
-            try { await _db.Database.ExecuteSqlRawAsync(sql); results["ran:" + sql] = "ok"; }
-            catch (Exception ex) { results["ran:" + sql] = "FAIL " + ex.Message; }
+            var tables = await _db.Database
+                .SqlQueryRaw<string>("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+                .ToListAsync();
+            results["allTables"] = tables;
         }
+        catch (Exception ex) { results["tablesError"] = ex.Message; }
+
+        // Create()-ის query-ების რეპროდუქცია — რომელი ტყდება?
+        try { var s = await _db.Services.FirstOrDefaultAsync(); results["query:Services"] = "ok"; }
+        catch (Exception ex) { results["query:Services"] = "FAIL " + ex.Message; }
+
+        try { var n = await _db.Nurses.Take(1).ToListAsync(); results["query:Nurses"] = "ok"; }
+        catch (Exception ex) { results["query:Nurses"] = "FAIL " + (ex.InnerException?.Message ?? ex.Message); }
+
+        try { var o = await _db.Orders.Take(1).ToListAsync(); results["query:Orders"] = "ok"; }
+        catch (Exception ex) { results["query:Orders"] = "FAIL " + (ex.InnerException?.Message ?? ex.Message); }
+
+        try { var dp = await _db.DistrictPrices.Take(1).ToListAsync(); results["query:DistrictPrices"] = "ok"; }
+        catch (Exception ex) { results["query:DistrictPrices"] = "FAIL " + (ex.InnerException?.Message ?? ex.Message); }
+
         return Ok(results);
     }
 

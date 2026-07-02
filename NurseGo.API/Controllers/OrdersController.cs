@@ -200,20 +200,19 @@ public class OrdersController : ControllerBase
             return StatusCode(500, new { message = ex.Message, inner = ex.InnerException?.Message });
         }
 
-        // კლიენტს ვაცნობებთ — ექთანი მოდის!
-        await _hub.Clients.Group($"order-{id}")
-            .SendAsync("StatusChanged", "Assigned");
-
-        // Push + Email — კლიენტს შეტყობინება
+        // post-save notifications — non-fatal, order is already assigned
+        try { await _hub.Clients.Group($"order-{id}").SendAsync("StatusChanged", "Assigned"); } catch { }
+        try { await _hub.Clients.All.SendAsync("OrderTaken", id); } catch { }
         _ = _push.SendToUser(order.CustomerId, "NurseGo 👩‍⚕️", "ექთანი მიღებულია — გამოდის თქვენსკენ!", $"/tracking/{id}");
-        var cust = await _db.Users.FindAsync(order.CustomerId);
-        if (cust != null)
-            _ = Task.Run(() => _email.SendOrderConfirmation(
-                cust.Email, cust.Name, id, order.Service?.Name ?? "მომსახურება", order.TotalPrice));
-
-        // სხვა ექთნებს ვეუბნებით — შეკვეთა დახურულია
-        await _hub.Clients.All
-            .SendAsync("OrderTaken", id);
+        _ = Task.Run(async () => {
+            try {
+                using var scope = HttpContext.RequestServices.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var cust = await db.Users.FindAsync(order.CustomerId);
+                if (cust != null)
+                    await _email.SendOrderConfirmation(cust.Email, cust.Name, id, order.Service?.Name ?? "მომსახურება", order.TotalPrice);
+            } catch { }
+        });
 
         return Ok(new { orderId = id, nurseId = nurse.Id });
     }

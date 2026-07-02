@@ -795,23 +795,42 @@ export default function AdminPanel() {
             <h1 className="page-title">შეკვეთების მართვა</h1>
             <div className="admin-table-wrap">
               <table className="admin-table">
-                <thead><tr><th className="col-hide-mobile">#</th><th>კლიენტი</th><th className="col-hide-mobile">მომსახ.</th><th className="col-hide-mobile">ექთანი</th><th>სტატუსი</th><th>ფასი</th><th className="col-hide-mobile">თარიღი</th></tr></thead>
+                <thead><tr><th className="col-hide-mobile">#</th><th>კლიენტი</th><th className="col-hide-mobile">მომსახ.</th><th className="col-hide-mobile">შესრულ. პროცედურა</th><th className="col-hide-mobile">ექთანი</th><th>სტატუსი</th><th>ფასი</th><th className="col-hide-mobile">თარიღი</th></tr></thead>
                 <tbody>
                   {orders.map(o => (
                     <tr key={o.id}>
                       <td className="col-hide-mobile" style={{ color: 'var(--gray)', fontSize: 13 }}>#{o.id}</td>
                       <td style={{ fontWeight: 600, fontSize: 13 }}>
                         {o.customer?.name}
-                        <div className="col-show-mobile" style={{ fontSize: 11, color: 'var(--gray)', fontWeight: 400 }}>{o.service?.name}</div>
+                        <div className="col-show-mobile" style={{ fontSize: 11, color: 'var(--gray)', fontWeight: 400 }}>
+                          {o.confirmedService || o.service?.name}
+                          {o.confirmedPrice != null && ` — ${o.confirmedPrice}₾`}
+                        </div>
                       </td>
                       <td className="col-hide-mobile">{o.service?.name}</td>
+                      <td className="col-hide-mobile" style={{ fontSize: 13 }}>
+                        {o.confirmedService ? (
+                          <span style={{ color: 'var(--text, #1e293b)', fontWeight: 600 }}>{o.confirmedService}</span>
+                        ) : (
+                          <span style={{ color: 'var(--gray)' }}>—</span>
+                        )}
+                      </td>
                       <td className="col-hide-mobile">{o.nurse?.user?.name || '—'}</td>
                       <td>
                         <span style={{ background: STATUS_COLORS[o.status]?.bg, color: STATUS_COLORS[o.status]?.color, padding: '3px 8px', borderRadius: 10, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
                           {STATUS_COLORS[o.status]?.label || o.status}
                         </span>
                       </td>
-                      <td style={{ fontWeight: 700, color: 'var(--primary)', whiteSpace: 'nowrap' }}>{o.totalPrice}₾</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {o.confirmedPrice != null ? (
+                          <>
+                            <span style={{ fontWeight: 700, color: 'var(--success, #10b981)' }}>{o.confirmedPrice}₾</span>
+                            <div style={{ fontSize: 11, color: 'var(--gray)' }}>შეკვ. {o.totalPrice}₾</div>
+                          </>
+                        ) : (
+                          <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{o.totalPrice}₾</span>
+                        )}
+                      </td>
                       <td className="col-hide-mobile" style={{ fontSize: 12, color: 'var(--gray)' }}>{new Date(o.createdAt).toLocaleDateString('ka-GE')}</td>
                     </tr>
                   ))}

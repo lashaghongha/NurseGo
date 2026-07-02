@@ -16,6 +16,8 @@ export default function OrderChat({ orderId }) {
   useEffect(() => {
     if (!orderId) return;
     chatService.getMessages(orderId).then(setMessages).catch(() => {});
+    // SignalR — order room-ში შესვლა, რომ მომხმარებლის მესიჯი real-time მოვიდეს
+    signalRService.joinOrder(orderId).catch(() => {});
   }, [orderId]);
 
   useEffect(() => {

@@ -337,8 +337,9 @@ public class AdminController : ControllerBase
         return Ok(data);
     }
 
-    // GET /api/admin/district-prices
+    // GET /api/admin/district-prices — public (კლიენტს სჭირდება ფასები)
     [HttpGet("district-prices")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetDistrictPrices()
     {
         var prices = await _db.DistrictPrices.OrderBy(d => d.Name).ToListAsync();

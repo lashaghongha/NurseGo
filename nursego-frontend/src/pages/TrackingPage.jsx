@@ -153,12 +153,21 @@ export default function TrackingPage() {
   }, [orderId]);
 
   useEffect(() => {
-    if (order?.status === 'Completed') {
-      clearInterval(pollRef.current);
-      if (!ratingSubmitted) setTimeout(() => setShowRating(true), 1500);
-      if (order.confirmedAt) setReceiptDone(true);
-      else { setReceiptService(order.service?.name || ''); setReceiptPrice(String(order.totalPrice || '')); }
+    if (order?.status !== 'Completed') return;
+    clearInterval(pollRef.current);
+    if (order.confirmedAt) setReceiptDone(true);
+    else { setReceiptService(order.service?.name || ''); setReceiptPrice(String(order.totalPrice || '')); }
+
+    // შევამოწმოთ სერვერზე უკვე შეფასდა თუ არა — refresh-ზე მოდალი აღარ გამოჩნდეს
+    let cancelled = false;
+    if (!ratingSubmitted) {
+      videoService.isOrderRated(orderId).then(rated => {
+        if (cancelled) return;
+        if (rated) setRatingSubmitted(true);
+        else setTimeout(() => { if (!cancelled) setShowRating(true); }, 1500);
+      });
     }
+    return () => { cancelled = true; };
   }, [order?.status]);
 
   const submitReceipt = async () => {

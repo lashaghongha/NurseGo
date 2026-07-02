@@ -46,6 +46,15 @@ public class RatingsController : ControllerBase
         return Ok(new { message = "შეფასება გამოგზავნილია" });
     }
 
+    // GET /api/ratings/order/{orderId}  — has this order been rated?
+    [HttpGet("order/{orderId}")]
+    [Authorize]
+    public async Task<IActionResult> GetForOrder(int orderId)
+    {
+        var rated = await _db.Ratings.AnyAsync(r => r.OrderId == orderId);
+        return Ok(new { rated });
+    }
+
     // GET /api/ratings  (Admin)
     [HttpGet]
     [Authorize(Roles = "Admin")]

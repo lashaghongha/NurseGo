@@ -9,4 +9,7 @@ export const videoService = {
 
   submitRating: (data) =>
     api.post('/ratings', data).then(r => r.data),
+
+  isOrderRated: (orderId) =>
+    api.get(`/ratings/order/${orderId}`).then(r => r.data?.rated === true).catch(() => false),
 };

@@ -58,6 +58,7 @@ export default function TrackingPage() {
   const [hoverRating, setHoverRating]         = useState(0);
   const [comment, setComment]                 = useState('');
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [submittingRating, setSubmittingRating] = useState(false);
   const [showCancel, setShowCancel]           = useState(false);
   const [cancelReason, setCancelReason]       = useState('');
   const [showChat, setShowChat]               = useState(false);
@@ -176,13 +177,30 @@ export default function TrackingPage() {
   };
 
   const submitRating = async () => {
+    if (submittingRating) return;
+    const nurseId = order?.nurseId ?? order?.nurse?.id;
+    if (!nurseId) {
+      toast.error('ექთანი ვერ მოიძებნა — შეფასება ვერ გაიგზავნა');
+      return;
+    }
+    setSubmittingRating(true);
     try {
-      await videoService.submitRating({ orderId: Number(orderId), nurseId: order.nurseId, stars: rating, comment });
+      await videoService.submitRating({ orderId: Number(orderId), nurseId, stars: rating, comment: comment || '' });
       setRatingSubmitted(true);
       setShowRating(false);
       toast.success('შეფასება გამოგზავნილია! გმადლობთ.');
-    } catch {
-      toast.error('შეფასება ვერ გაიგზავნა');
+    } catch (err) {
+      const msg = err?.response?.data?.message || '';
+      // უკვე შეფასებულია — არ არის შეცდომა, უბრალოდ დავხუროთ მოდალი
+      if (err?.response?.status === 400 && msg.includes('შეფასებული')) {
+        setRatingSubmitted(true);
+        setShowRating(false);
+        toast('ეს შეკვეთა უკვე შეფასებულია');
+        return;
+      }
+      toast.error(msg || 'შეფასება ვერ გაიგზავნა');
+    } finally {
+      setSubmittingRating(false);
     }
   };
 
@@ -541,9 +559,9 @@ export default function TrackingPage() {
             </div>
             <textarea className="form-textarea" placeholder="კომენტარი..." value={comment}
               onChange={e => setComment(e.target.value)} rows={3} />
-            <button className="btn btn-primary" onClick={submitRating} disabled={!rating}
+            <button className="btn btn-primary" onClick={submitRating} disabled={!rating || submittingRating}
               style={{ width:'100%', justifyContent:'center' }}>
-              შეფასების გაგზავნა
+              {submittingRating ? 'იგზავნება...' : 'შეფასების გაგზავნა'}
             </button>
           </div>
         </div>

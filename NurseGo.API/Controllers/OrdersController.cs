@@ -191,7 +191,14 @@ public class OrdersController : ControllerBase
         order.NurseId    = nurse.Id;
         order.Status     = OrderStatus.Assigned;
         nurse.Status     = NurseStatus.Busy;
-        await _db.SaveChangesAsync();
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message, inner = ex.InnerException?.Message });
+        }
 
         // კლიენტს ვაცნობებთ — ექთანი მოდის!
         await _hub.Clients.Group($"order-{id}")

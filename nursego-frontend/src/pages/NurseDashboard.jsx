@@ -337,7 +337,13 @@ export default function NurseDashboard() {
 
     setSubmittingReport(true);
     try {
-      await ordersService.complete(activeOrder.id, procedure, amount);
+      try {
+        await ordersService.complete(activeOrder.id, procedure, amount);
+      } catch (reportErr) {
+        // fallback: თუ ანგარიშის ველების ჩაწერა ჩავარდა (მაგ. ძველი DB სქემა),
+        // მაინც დავასრულოთ შეკვეთა, რომ refresh-ზე ისევ არ გამოჩნდეს
+        await ordersService.updateStatus(activeOrder.id, 'Completed');
+      }
       stopEnRouteGps();
       setHistoryOrders(prev => [{ ...activeOrder, status: 'Completed', nurseProcedure: procedure, nurseAmount: amount }, ...prev]);
       setActiveOrder(null);

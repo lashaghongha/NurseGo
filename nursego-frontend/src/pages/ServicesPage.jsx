@@ -10,15 +10,23 @@ const CATEGORIES = ['ყველა', 'ინექცია', 'გადას
 export default function ServicesPage() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activeCategory, setActiveCategory] = useState('ყველა');
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
+  const loadServices = () => {
+    setLoading(true);
+    setLoadError(false);
     servicesService.getAll()
       .then(setServices)
-      .catch(() => toast.error('მომსახურებების ჩატვირთვა ვერ მოხდა'))
+      .catch(() => {
+        setLoadError(true);
+        toast.error('მომსახურებების ჩატვირთვა ვერ მოხდა');
+      })
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadServices(); }, []);
 
   const filtered = services.filter(s => {
     const matchCat = activeCategory === 'ყველა' || s.category === activeCategory;
@@ -49,6 +57,11 @@ export default function ServicesPage() {
 
         {loading ? (
           <SkeletonGrid count={6} />
+        ) : loadError ? (
+          <div className="services-error">
+            <p>მომსახურებების ჩატვირთვა ვერ მოხდა.</p>
+            <button className="btn btn-primary" onClick={loadServices}>ხელახლა ცდა</button>
+          </div>
         ) : (
           <>
             <div className="services-count">{filtered.length} მომსახურება</div>

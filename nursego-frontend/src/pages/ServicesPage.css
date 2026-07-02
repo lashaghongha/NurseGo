@@ -93,3 +93,13 @@
 
 @media (max-width: 1024px) { .services-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px) { .services-grid { grid-template-columns: 1fr; } }
+
+.services-error {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #64748b;
+}
+.services-error p {
+  margin-bottom: 1rem;
+  font-size: 1.05rem;
+}

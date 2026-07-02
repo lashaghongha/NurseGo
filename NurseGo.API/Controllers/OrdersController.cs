@@ -36,25 +36,31 @@ public class OrdersController : ControllerBase
     public async Task<IActionResult> Diag()
     {
         var results = new Dictionary<string, object>();
-        try
-        {
-            var cols = await _db.Database
-                .SqlQueryRaw<string>("SELECT column_name FROM information_schema.columns WHERE lower(table_name) = 'orders'")
-                .ToListAsync();
-            results["ordersColumns"] = cols;
-            results["hasNurseProcedure"] = cols.Any(c => string.Equals(c, "NurseProcedure", StringComparison.OrdinalIgnoreCase));
-            results["hasNurseAmount"] = cols.Any(c => string.Equals(c, "NurseAmount", StringComparison.OrdinalIgnoreCase));
-        }
-        catch (Exception ex) { results["schemaError"] = ex.Message; }
 
+        try { results["searchPath"] = (await _db.Database.SqlQueryRaw<string>("SELECT current_schema()").ToListAsync()).FirstOrDefault() ?? ""; }
+        catch (Exception ex) { results["searchPathError"] = ex.Message; }
+
+        // NurseGo-ს Orders ცხრილი იმ schema-შია, სადაც "CustomerId" სვეტი არსებობს
+        string? nurseGoSchema = null;
         try
         {
-            var tables = await _db.Database
-                .SqlQueryRaw<string>("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
-                .ToListAsync();
-            results["allTables"] = tables;
+            nurseGoSchema = (await _db.Database
+                .SqlQueryRaw<string>("SELECT table_schema FROM information_schema.columns WHERE table_name = 'Orders' AND column_name = 'CustomerId' LIMIT 1")
+                .ToListAsync()).FirstOrDefault();
+            results["nurseGoOrdersSchema"] = nurseGoSchema ?? "(not found)";
         }
-        catch (Exception ex) { results["tablesError"] = ex.Message; }
+        catch (Exception ex) { results["nurseGoSchemaError"] = ex.Message; }
+
+        // ზუსტ schema-ში დავამატოთ ნაკლული სვეტები
+        if (!string.IsNullOrEmpty(nurseGoSchema))
+        {
+            foreach (var (col, type) in new[] { ("NurseProcedure", "TEXT"), ("NurseAmount", "NUMERIC") })
+            {
+                var sql = $"ALTER TABLE \"{nurseGoSchema}\".\"Orders\" ADD COLUMN IF NOT EXISTS \"{col}\" {type}";
+                try { await _db.Database.ExecuteSqlRawAsync(sql); results["heal:" + col] = "ok -> " + nurseGoSchema; }
+                catch (Exception ex) { results["heal:" + col] = "FAIL " + ex.Message; }
+            }
+        }
 
         // Create()-ის query-ების რეპროდუქცია — რომელი ტყდება?
         try { var s = await _db.Services.FirstOrDefaultAsync(); results["query:Services"] = "ok"; }
